@@ -18,24 +18,15 @@
 #include "glsl_shaders.h"
 
 const char * const blendLightShaderVP = R"(
-#version 100
-precision mediump float;
-
-// In
-attribute highp vec4 attr_Vertex;
-
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_fogMatrix;
-
-// Out
-// gl_Position
-varying vec2 var_TexFog;
-varying vec2 var_TexFogEnter;
-
-void main(void)
-{
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+void main(
+	float4 attr_Vertex,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_fogMatrix,
+	float2 out var_TexFog : TEXCOORD0,
+	float2 out var_TexFogEnter : TEXCOORD1,
+	float4 out gl_Position : POSITION
+) {
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 
   // What will be computed:
   //
@@ -51,7 +42,7 @@ void main(void)
 
   // Optimized version:
   //
-  var_TexFog = vec2(dot( u_fogMatrix[0], attr_Vertex ), dot( u_fogMatrix[1], attr_Vertex )) / dot( u_fogMatrix[2], attr_Vertex );
-  var_TexFogEnter = vec2( dot( u_fogMatrix[3], attr_Vertex ), 0.5 );
+  var_TexFog = float2(dot( u_fogMatrix[0], attr_Vertex ), dot( u_fogMatrix[1], attr_Vertex )) / dot( u_fogMatrix[2], attr_Vertex );
+  var_TexFogEnter = float2( dot( u_fogMatrix[3], attr_Vertex ), 0.5f );
 }
 )";

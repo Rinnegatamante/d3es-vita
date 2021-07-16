@@ -18,25 +18,16 @@
 #include "glsl_shaders.h"
 
 const char * const zfillShaderVP = R"(
-#version 100
-precision mediump float;
+void main(
+	float4 attr_Vertex,
+	float4 attr_TexCoord,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_textureMatrix,
+	float2 out var_TexDiffuse : TEXCOORD0,
+	float4 out gl_Position : POSITION
+) {
+  var_TexDiffuse = mul(attr_TexCoord, u_textureMatrix).xy;  // Homogeneous coordinates of textureMatrix supposed to be 1
 
-// In
-attribute highp vec4 attr_Vertex;
-attribute vec4 attr_TexCoord;
-        
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_textureMatrix;
-        
-// Out
-// gl_Position
-varying vec2 var_TexDiffuse;
-        
-void main(void)
-{
-  var_TexDiffuse = (u_textureMatrix * attr_TexCoord).xy;  // Homogeneous coordinates of textureMatrix supposed to be 1
-
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 }
 )";

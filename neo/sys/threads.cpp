@@ -31,13 +31,22 @@ If you have questions concerning this license or the applicable additional terms
 #include <SDL_thread.h>
 #include <SDL_timer.h>
 
+#ifdef VITA
+#include <vitasdk.h>
+#endif
+
 #include "sys/platform.h"
 #include "framework/Common.h"
 
 #include "sys/sys_public.h"
 
+#ifdef VITA
+static SceUID	mutex[MAX_CRITICAL_SECTIONS] = { };
+static SceUID	cond[MAX_TRIGGER_EVENTS] = { };
+#else
 static SDL_mutex	*mutex[MAX_CRITICAL_SECTIONS] = { };
 static SDL_cond		*cond[MAX_TRIGGER_EVENTS] = { };
+#endif
 static bool			signaled[MAX_TRIGGER_EVENTS] = { };
 static bool			waiting[MAX_TRIGGER_EVENTS] = { };
 
@@ -50,7 +59,11 @@ Sys_Sleep
 ==============
 */
 void Sys_Sleep(int msec) {
+#ifdef VITA
+	sceKernelDelayThread(1000 * msec);
+#else
 	SDL_Delay(msec);
+#endif
 }
 
 /*
@@ -59,9 +72,163 @@ Sys_Milliseconds
 ================
 */
 unsigned int Sys_Milliseconds() {
+#ifdef VITA
+	static uint64_t	base;
+	
+	uint64_t time = sceKernelGetSystemTimeWide() / 1000;
+	if (!base) base = time;
+	
+	return (unsigned int)(time - base);
+#else
 	return SDL_GetTicks();
+#endif
 }
 
+#ifdef VITA
+/*
+==================
+Sys_InitThreads
+==================
+*/
+void Sys_InitThreads() {
+	// critical sections
+	for (int i = 0; i < MAX_CRITICAL_SECTIONS; i++) {
+		mutex[i] = sceKernelCreateMutex("Mutex", 0, 0, NULL);
+		if (mutex[i] < 0) {
+			Sys_Printf("ERROR: VITA_CreateMutex failed\n");
+			return;
+		}
+	}
+
+	// events
+	for (int i = 0; i < MAX_TRIGGER_EVENTS; i++) {
+		cond[i] = sceKernelCreateCond("Cond", 0, mutex[CRITICAL_SECTION_SYS], NULL);
+
+		if (cond[i] < 0) {
+			Sys_Printf("ERROR: VITA_CreateCond failed\n");
+			return;
+		}
+
+		signaled[i] = false;
+		waiting[i] = false;
+	}
+
+	// threads
+	for (int i = 0; i < MAX_THREADS; i++)
+		thread[i] = NULL;
+
+	thread_count = 0;
+}
+
+/*
+==================
+Sys_ShutdownThreads
+==================
+*/
+void Sys_ShutdownThreads() {
+	// threads
+	for (int i = 0; i < MAX_THREADS; i++) {
+		if (!thread[i])
+			continue;
+
+		Sys_Printf("WARNING: Thread '%s' still running\n", thread[i]->name);
+		sceKernelDeleteThread(thread[i]->threadHandle);
+		thread[i] = NULL;
+	}
+
+	// events
+	for (int i = 0; i < MAX_TRIGGER_EVENTS; i++) {
+		sceKernelDeleteCond(cond[i]);
+		cond[i] = -1;
+		signaled[i] = false;
+		waiting[i] = false;
+	}
+
+	// critical sections
+	for (int i = 0; i < MAX_CRITICAL_SECTIONS; i++) {
+		sceKernelDeleteMutex(mutex[i]);
+		mutex[i] = -1;
+	}
+}
+
+/*
+==================
+Sys_EnterCriticalSection
+==================
+*/
+void Sys_EnterCriticalSection(int index) {
+	assert(index >= 0 && index < MAX_CRITICAL_SECTIONS);
+
+	sceKernelLockMutex(mutex[index], 1, NULL);
+}
+
+/*
+==================
+Sys_LeaveCriticalSection
+==================
+*/
+void Sys_LeaveCriticalSection(int index) {
+	assert(index >= 0 && index < MAX_CRITICAL_SECTIONS);
+
+	sceKernelUnlockMutex(mutex[index], 1);
+}
+
+/*
+======================================================
+wait and trigger events
+we use a single lock to manipulate the conditions, CRITICAL_SECTION_SYS
+
+the semantics match the win32 version. signals raised while no one is waiting stay raised until a wait happens (which then does a simple pass-through)
+
+NOTE: we use the same mutex for all the events. I don't think this would become much of a problem
+cond_wait unlocks atomically with setting the wait condition, and locks it back before exiting the function
+the potential for time wasting lock waits is very low
+======================================================
+*/
+
+/*
+==================
+Sys_WaitForEvent
+==================
+*/
+void Sys_WaitForEvent(int index) {
+	assert(index >= 0 && index < MAX_TRIGGER_EVENTS);
+
+	Sys_EnterCriticalSection(CRITICAL_SECTION_SYS);
+
+	assert(!waiting[index]);	// WaitForEvent from multiple threads? that wouldn't be good
+	if (signaled[index]) {
+		// emulate windows behaviour: signal has been raised already. clear and keep going
+		signaled[index] = false;
+	} else {
+		waiting[index] = true;
+		sceKernelWaitCond(cond[index], NULL);
+		waiting[index] = false;
+	}
+
+	Sys_LeaveCriticalSection(CRITICAL_SECTION_SYS);
+}
+
+/*
+==================
+Sys_TriggerEvent
+==================
+*/
+void Sys_TriggerEvent(int index) {
+	assert(index >= 0 && index < MAX_TRIGGER_EVENTS);
+
+	Sys_EnterCriticalSection(CRITICAL_SECTION_SYS);
+
+	if (waiting[index]) {
+		sceKernelSignalCondAll(cond[index]);
+	} else {
+		// emulate windows behaviour: if no thread is waiting, leave the signal on so next wait keeps going
+		signaled[index] = true;
+	}
+
+	Sys_LeaveCriticalSection(CRITICAL_SECTION_SYS);
+}
+#else
 /*
 ==================
 Sys_InitThreads
@@ -71,7 +238,6 @@ void Sys_InitThreads() {
 	// critical sections
 	for (int i = 0; i < MAX_CRITICAL_SECTIONS; i++) {
 		mutex[i] = SDL_CreateMutex();
-
 		if (!mutex[i]) {
 			Sys_Printf("ERROR: SDL_CreateMutex failed\n");
 			return;
@@ -214,6 +380,20 @@ void Sys_TriggerEvent(int index) {
 
 	Sys_LeaveCriticalSection(CRITICAL_SECTION_SYS);
 }
+#endif
+
+#ifdef VITA
+static int vita_thread(SceSize args, void *argp)
+{
+	uint32_t *argp32 = (uint32_t *)argp;
+	
+	void *parms = (void *)argp32[0];
+	xthread_t function = (xthread_t)argp32[1];
+	function(parms);
+	
+	return 0;
+}
+#endif
 
 /*
 ==================
@@ -223,21 +403,32 @@ Sys_CreateThread
 void Sys_CreateThread(xthread_t function, void *parms, xthreadInfo& info, const char *name) {
 	Sys_EnterCriticalSection();
 
+#ifdef VITA
+	uint32_t args[2];
+	args[0] = (uint32_t)parms;
+	args[1] = (uint32_t)function;
+	SceUID t = sceKernelCreateThread(name, vita_thread, 0x40, 2 * 1024 * 1024, 0, 0, NULL);
+#else
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Thread *t = SDL_CreateThread(function, name, parms);
 #else
 	SDL_Thread *t = SDL_CreateThread(function, parms);
 #endif
-
+#endif
+#ifdef VITA
+	if (t < 0) {
+		common->Error("ERROR: Thread for '%s' failed with error 0x%08X\n", name, t);
+#else
 	if (!t) {
 		common->Error("ERROR: SDL_thread for '%s' failed\n", name);
+#endif
 		Sys_LeaveCriticalSection();
 		return;
 	}
 
 	info.name = name;
 	info.threadHandle = t;
-	info.threadId = SDL_GetThreadID(t);
+	info.threadId = t;
 
 	if (thread_count < MAX_THREADS)
 		thread[thread_count++] = &info;
@@ -254,9 +445,12 @@ Sys_DestroyThread
 */
 void Sys_DestroyThread(xthreadInfo& info) {
 	assert(info.threadHandle);
-
+#ifdef VITA
+	sceKernelWaitThreadEnd(info.threadHandle, NULL, NULL);
+	sceKernelDeleteThread(info.threadHandle);
+#else
 	SDL_WaitThread(info.threadHandle, NULL);
-
+#endif
 	info.name = NULL;
 	info.threadHandle = NULL;
 	info.threadId = 0;

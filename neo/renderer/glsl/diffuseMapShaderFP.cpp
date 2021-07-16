@@ -18,22 +18,12 @@
 #include "glsl_shaders.h"
 
 const char * const diffuseMapShaderFP = R"(
-#version 100
-precision mediump float;
-
-// In
-varying vec2 var_TexCoord;
-varying lowp vec4 var_Color;
-
-// Uniforms
-uniform sampler2D u_fragmentMap0;
-uniform lowp vec4 u_glColor;
-
-// Out
-// gl_FragCoord
-
-void main(void)
-{
-  gl_FragColor = texture2D(u_fragmentMap0, var_TexCoord) * u_glColor * var_Color;
+float4 main(
+	float2 var_TexCoord : TEXCOORD0,
+	float4 var_Color : COLOR,
+	uniform sampler2D u_fragmentMap0,
+	uniform float4 u_glColor
+) {
+	return tex2D(u_fragmentMap0, var_TexCoord) * u_glColor * var_Color;
 }
 )";

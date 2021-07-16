@@ -18,22 +18,12 @@
 #include "glsl_shaders.h"
 
 const char * const cubeMapShaderFP = R"(
-#version 100
-precision mediump float;
-
-// In
-varying vec3 var_TexCoord;
-varying lowp vec4 var_Color;
-
-// Uniforms
-uniform samplerCube u_fragmentCubeMap0;
-uniform lowp vec4 u_glColor;
-
-// Out
-// gl_FragColor
-  
-void main(void)
-{
-  gl_FragColor = textureCube(u_fragmentCubeMap0, var_TexCoord) * u_glColor * var_Color;
+float4 main(
+	float3 var_TexCoord : TEXCOORD0,
+	float4 var_Color : COLOR,
+	uniform samplerCUBE u_fragmentCubeMap0,
+	uniform float4 u_glColor
+) {
+	return texCUBE(u_fragmentCubeMap0, var_TexCoord) * u_glColor * var_Color;
 }
 )";

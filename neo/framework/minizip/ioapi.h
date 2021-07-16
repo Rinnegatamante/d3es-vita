@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <zlib.h>
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(VITA)
 #define USE_FILE32API
 #endif
 

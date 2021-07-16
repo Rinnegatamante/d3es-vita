@@ -1,3 +1,9 @@
+*.bin
+*.sfo
+*.velf
+*.elf
+*.o
+*.vpk
 /build*
 *~
 .*.swp

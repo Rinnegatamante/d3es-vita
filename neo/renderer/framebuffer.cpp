@@ -109,24 +109,19 @@ int createProgram(const char * vertexSource, const char *  fragmentSource)
 static void createShaders (void)
 {
 	const GLchar *vertSource = \
-           "attribute vec4 a_position;                                     \n \
-			attribute vec2 a_texCoord;                                     \n \
-			varying vec2 v_texCoord;                                       \n \
-			void main()                                                    \n \
-			{                                                              \n \
+           "void main(float4 a_position, float2 a_texCoord,                \n \
+			    float2 out v_texCoord : TEXCOORD0,                         \n \
+			    float4 out gl_Position : POSITION) {                       \n \
 			   gl_Position = a_position;                                   \n \
 			   v_texCoord = a_texCoord;                                    \n \
 			}                                                              \n \
 			";
 
 	const GLchar *fragSource = \
-			"precision mediump float;                                \n  \
-			varying vec2 v_texCoord;                                 \n  \
-			uniform sampler2D s_texture;                             \n  \
-			void main()                                              \n  \
+			"float4 main(float2 v_texCoord : TEXCOORD0,              \n \
+			uniform sampler2D s_texture)                             \n  \
 			{                                                        \n  \
-				gl_FragColor =  texture2D( s_texture, v_texCoord );  \n  \
-				//gl_FragColor =  vec4( 0.8, 0.5, 0.9, 1.0 );  \n  \
+				return tex2D( s_texture, v_texCoord );               \n  \
 			}                                                        \n  \
 			";
 

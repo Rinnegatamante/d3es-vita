@@ -17,30 +17,21 @@
 
 #include "glsl_shaders.h"
 
-const char * const zfillClipShaderVP = R"(
-#version 100
-precision mediump float;
-        
-// In
-attribute highp vec4 attr_Vertex;
-attribute vec4 attr_TexCoord;
-        
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_textureMatrix;
-uniform vec4 u_clipPlane;
-        
-// Out
-// gl_Position
-varying vec2 var_TexDiffuse;
-varying vec2 var_TexClip;
-        
-void main(void)
-{
-  var_TexDiffuse = (u_textureMatrix * attr_TexCoord).xy;  // Homogeneous coordinates of textureMatrix supposed to be 1
+const char * const zfillClipShaderVP = R"(  
+void main(
+	float4 attr_Vertex,
+	float4 attr_TexCoord,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_textureMatrix,
+	uniform float4 u_clipPlane,
+	float2 out var_TexDiffuse : TEXCOORD0,
+	float2 out var_TexClip : TEXCOORD1,
+	float4 out gl_Position : POSITION
+) {
+  var_TexDiffuse = mul(attr_TexCoord, u_textureMatrix).xy;  // Homogeneous coordinates of textureMatrix supposed to be 1
 
-  var_TexClip = vec2( dot( u_clipPlane, attr_Vertex), 0.5 );
+  var_TexClip = float2( dot( u_clipPlane, attr_Vertex), 0.5f );
 
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 }
 )";

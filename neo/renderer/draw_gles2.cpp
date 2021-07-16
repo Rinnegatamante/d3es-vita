@@ -204,6 +204,7 @@ makes sure GLSL program is valid
 =================
 */
 static bool R_ValidateGLSLProgram(shaderProgram_t* shaderProgram) {
+#ifndef VITA
 	GLint validProgram;
 
 	qglValidateProgram(shaderProgram->program);
@@ -214,7 +215,7 @@ static bool R_ValidateGLSLProgram(shaderProgram_t* shaderProgram) {
 		common->Printf("R_ValidateGLSLProgram: program invalid\n");
 		return false;
 	}
-
+#endif
 	return true;
 }
 
@@ -259,7 +260,7 @@ static void RB_GLSL_GetUniformLocations(shaderProgram_t* shader) {
 	shader->attr_Normal = qglGetAttribLocation(shader->program, "attr_Normal");
 	shader->attr_Vertex = qglGetAttribLocation(shader->program, "attr_Vertex");
 	shader->attr_Color = qglGetAttribLocation(shader->program, "attr_Color");
-
+#ifndef VITA
 	// Init default values
 	for ( i = 0; i < MAX_FRAGMENT_IMAGES; i++ ) {
 		idStr::snPrintf(buffer, sizeof(buffer), "u_fragmentMap%d", i);
@@ -272,7 +273,7 @@ static void RB_GLSL_GetUniformLocations(shaderProgram_t* shader) {
 		shader->u_fragmentCubeMap[i] = qglGetUniformLocation(shader->program, buffer);
 		qglUniform1i(shader->u_fragmentCubeMap[i], i);
 	}
-
+#endif
 	if (shader->textureMatrix >= 0) {
 		// Load identity matrix for Texture marix
 		GL_UniformMatrix4fv(offsetof(shaderProgram_t, textureMatrix), mat4_identity.ToFloatPtr());

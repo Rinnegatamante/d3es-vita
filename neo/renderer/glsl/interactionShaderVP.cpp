@@ -18,44 +18,35 @@
 #include "glsl_shaders.h"
 
 const char * const interactionShaderVP = R"(
-#version 100
-precision highp float;
-  
-// In
-attribute highp vec4 attr_Vertex;
-attribute lowp vec4 attr_Color;
-attribute vec4 attr_TexCoord;
-attribute vec3 attr_Tangent;
-attribute vec3 attr_Bitangent;
-attribute vec3 attr_Normal;
-
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_lightProjection;
-uniform lowp float u_colorModulate;
-uniform lowp float u_colorAdd;
-uniform vec4 u_lightOrigin;
-uniform vec4 u_viewOrigin;
-uniform vec4 u_bumpMatrixS;
-uniform vec4 u_bumpMatrixT;
-uniform vec4 u_diffuseMatrixS;
-uniform vec4 u_diffuseMatrixT;
-uniform vec4 u_specularMatrixS;
-uniform vec4 u_specularMatrixT;
-
-// Out
-// gl_Position
-varying vec2 var_TexDiffuse;
-varying vec2 var_TexNormal;
-varying vec2 var_TexSpecular;
-varying vec4 var_TexLight;
-varying lowp vec4 var_Color;
-varying vec3 var_L;
-varying vec3 var_H;
-  
-void main(void)
-{
-  mat3 M = mat3(attr_Tangent, attr_Bitangent, attr_Normal);
+void main(
+	float4 attr_Vertex,
+	float4 attr_Color,
+	float4 attr_TexCoord,
+	float3 attr_Tangent,
+	float3 attr_Bitangent,
+	float3 attr_Normal,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_lightProjection,
+	uniform float u_colorModulate,
+	uniform float u_colorAdd,
+	uniform float4 u_lightOrigin,
+	uniform float4 u_viewOrigin,
+	uniform float4 u_bumpMatrixS,
+	uniform float4 u_bumpMatrixT,
+	uniform float4 u_diffuseMatrixS,
+	uniform float4 u_diffuseMatrixT,
+	uniform float4 u_specularMatrixS,
+	uniform float4 u_specularMatrixT,
+	float2 out var_TexDiffuse : TEXCOORD0,
+	float2 out var_TexNormal : TEXCOORD1,
+	float2 out var_TexSpecular : TEXCOORD2,
+	float4 out var_TexLight : TEXCOORD3,
+	float3 out var_L : TEXCOORD4,
+	float3 out var_H : TEXCOORD5,
+	float4 out var_Color : COLOR,
+	float4 out gl_Position : POSITION
+) {
+  float3x3 M = float3x3(attr_Tangent, attr_Bitangent, attr_Normal);
   
   var_TexNormal.x = dot(u_bumpMatrixS, attr_TexCoord);
   var_TexNormal.y = dot(u_bumpMatrixT, attr_TexCoord);
@@ -71,17 +62,15 @@ void main(void)
   var_TexLight.z = dot(u_lightProjection[2], attr_Vertex);
   var_TexLight.w = dot(u_lightProjection[3], attr_Vertex);
   
-  vec3 L = u_lightOrigin.xyz - attr_Vertex.xyz;
-  vec3 V = u_viewOrigin.xyz - attr_Vertex.xyz;
-  vec3 H = normalize(L) + normalize(V);
+  float3 L = u_lightOrigin.xyz - attr_Vertex.xyz;
+  float3 V = u_viewOrigin.xyz - attr_Vertex.xyz;
+  float3 H = normalize(L) + normalize(V);
   
-  var_L = L * M;
-  var_H = H * M;
+  var_L = mul(M, L);
+  var_H = mul(M, H);
 
-
-  var_Color = (attr_Color * u_colorModulate) + vec4(u_colorAdd);
-
+  var_Color = (attr_Color * u_colorModulate) + float4(u_colorAdd);
   
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 }
 )";

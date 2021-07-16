@@ -35,12 +35,12 @@ If you have questions concerning this license or the applicable additional terms
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/param.h>
-#include <sys/ioctl.h>
-#include <sys/uio.h>
+//#include <sys/ioctl.h>
+//#include <sys/uio.h>
 #include <errno.h>
 #include <sys/select.h>
-#include <net/if.h>
-#include <ifaddrs.h>
+//#include <net/if.h>
+//#include <ifaddrs.h>
 
 #include "sys/platform.h"
 #include "framework/Common.h"
@@ -48,6 +48,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/sys_public.h"
 
 #include "sys/posix/posix_public.h"
+
+#define INT_MAX 2147483647
+#define INT_MIN -2147483648
 
 idPort clientPort, serverPort;
 
@@ -117,8 +120,8 @@ static bool ExtractPort( const char *src, char *buf, int bufsize, int *port ) {
 	}
 	*p = '\0';
 	*port = strtol( p+1, NULL, 10 );
-	if ( ( *port == 0 && errno == EINVAL ) ||
-		 ( ( *port == INT_MIN || *port == INT_MAX ) && errno == ERANGE ) ) {
+	if ( ( *port == 0 && errno == EINVAL )
+		|| ( ( *port == INT_MIN || *port == INT_MAX ) && errno == ERANGE ) ) {
 		return false;
 	}
 	return true;
@@ -138,7 +141,7 @@ static bool StringToSockaddr( const char *s, struct sockaddr_in *sadr, bool doDN
 	sadr->sin_family = AF_INET;
 
 	sadr->sin_port = 0;
-
+#ifndef VITA	
 	if (s[0] >= '0' && s[0] <= '9') {
 		if ( !inet_aton( s, &sadr->sin_addr ) ) {
 			// check for port
@@ -150,7 +153,9 @@ static bool StringToSockaddr( const char *s, struct sockaddr_in *sadr, bool doDN
 			}
 			sadr->sin_port = htons( port );
 		}
-	} else if ( doDNSResolve ) {
+	} else if ( doDNSResolve )
+#endif
+	{
 		// try to remove the port first, otherwise the DNS gets confused into multiple timeouts
 		// failed or not failed, buf is expected to contain the appropriate host to resolve
 		if ( ExtractPort( s, buf, sizeof( buf ), &port ) ) {
@@ -266,6 +271,16 @@ bool Sys_CompareNetAdrBase( const netadr_t a, const netadr_t b ) {
 	return false;
 }
 
+#ifdef VITA
+inline in_addr_t inet_addr( const char *cp )
+{
+	int32_t b1, b2, b3, b4;
+	int res = sscanf( cp, "%d.%d.%d.%d", &b1, &b2, &b3, &b4 );
+	if( res != 4 ) return (in_addr_t)(-1); // is actually expected behavior
+	return htonl( (b1 << 24) | (b2 << 16) | (b3 << 8) | b4 );
+}
+#endif
+
 /*
 ====================
 NET_InitNetworking
@@ -273,9 +288,15 @@ NET_InitNetworking
 */
 void Sys_InitNetworking(void)
 {
-#ifdef __ANDROID__ // FIX ME!!!
+#if defined(__ANDROID__) // FIX ME!!!
 return;
-#endif
+#else
+#ifdef VITA
+	num_interfaces = 1;
+	common->Printf( "Sys_InitNetworking: adding loopback interface\n" );
+	netint[0].ip = ntohl( inet_addr( "127.0.0.1" ) );
+	netint[0].mask = ntohl( inet_addr( "255.0.0.0" ) );
+#else
 	unsigned int ip, mask;
 	struct ifaddrs *ifap, *ifp;
 
@@ -325,6 +346,8 @@ return;
 #ifndef __ANDROID__
 	freeifaddrs(ifap);
 #endif
+#endif
+#endif
 }
 
 /*
@@ -348,12 +371,17 @@ static int IPSocket( const char *net_interface, int port, netadr_t *bound_to = N
 		return 0;
 	}
 	// make it non-blocking
+#ifdef VITA
+	setsockopt(newsocket, SOL_SOCKET, SO_NONBLOCK, (char *) &i, sizeof(i));
+#else
 	int on = 1;
 	if ( ioctl( newsocket, FIONBIO, &on ) == -1 ) {
 		common->Printf( "ERROR: IPSocket: ioctl FIONBIO:%s\n",
 				   strerror( errno ) );
 		return 0;
 	}
+#endif
+
 	// make it broadcast capable
 	if ( setsockopt( newsocket, SOL_SOCKET, SO_BROADCAST, (char *) &i, sizeof(i) ) == -1 ) {
 		common->Printf( "ERROR: IPSocket: setsockopt SO_BROADCAST:%s\n", strerror( errno ) );
@@ -693,7 +721,7 @@ int	idTCP::Write(void *data, int size) {
 		common->Printf( "idTCP::Write: not initialized\n");
 		return -1;
 	}
-
+#ifndef VITA
 	struct sigaction bak_action;
 	struct sigaction action;
 
@@ -706,7 +734,7 @@ int	idTCP::Write(void *data, int size) {
 		Close();
 		return -1;
 	}
-
+#endif
 #if defined(_GNU_SOURCE) && defined(TEMP_FAILURE_RETRY)
 	// handle EINTR interrupted system call with TEMP_FAILURE_RETRY -  this is probably GNU libc specific
 	if ( ( nbytes = TEMP_FAILURE_RETRY ( write( fd, data, size ) ) ) == -1 ) {
@@ -720,12 +748,12 @@ int	idTCP::Write(void *data, int size) {
 		Close();
 		return -1;
 	}
-
+#ifndef VITA
 	if ( sigaction( SIGPIPE, &bak_action, NULL ) != 0 ) {
 		common->Printf( "ERROR: idTCP::Write: failed to reset SIGPIPE handler\n" );
 		Close();
 		return -1;
 	}
-
+#endif
 	return nbytes;
 }

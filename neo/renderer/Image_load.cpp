@@ -719,9 +719,10 @@ void idImage::GenerateCubeImage( const byte *pic[6], int size,
 	Bind();
 
 	// no other clamp mode makes sense
+#ifndef VITA
 	qglTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	qglTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
+#endif
 	// set the minimize / maximize filtering
 	switch( filter ) {
 	case TF_DEFAULT:
@@ -747,7 +748,7 @@ void idImage::GenerateCubeImage( const byte *pic[6], int size,
 		               GL_RGBA, GL_UNSIGNED_BYTE, pic[i] );
 	}
 
-
+#ifndef VITA
 	// create and upload the mip map levels
 	int		miplevel;
 	byte	*shrunk[6];
@@ -779,7 +780,7 @@ void idImage::GenerateCubeImage( const byte *pic[6], int size,
 		scaled_height >>= 1;
 		miplevel++;
 	}
-
+#endif
 	// see if we messed anything up
 	GL_CheckErrors();
 }
@@ -1033,7 +1034,7 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight, bo
 
 	//Disabled for OES2
 	//qglReadBuffer( GL_BACK );
-
+#ifndef VITA
 	// only resize if the current dimensions can't hold it at all,
 	// otherwise subview renderings could thrash this
 	if ( ( useOversizedBuffer && ( uploadWidth < potWidth || uploadHeight < potHeight ) )
@@ -1068,7 +1069,7 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight, bo
 	if ( imageHeight != potHeight ) {
 		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, imageHeight, x, y+imageHeight-1, imageWidth, 1 );
 	}
-
+#endif
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
@@ -1093,7 +1094,7 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight ) {
 
 	potWidth = MakePowerOfTwo( imageWidth );
 	potHeight = MakePowerOfTwo( imageHeight );
-
+#ifndef VITA
 	if ( uploadWidth != potWidth || uploadHeight != potHeight ) {
 		uploadWidth = potWidth;
 		uploadHeight = potHeight;
@@ -1110,7 +1111,7 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight ) {
 		// it and don't try and do a texture compression or some other silliness
 		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
 	}
-
+#endif
 //	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 //	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 

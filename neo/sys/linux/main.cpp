@@ -42,6 +42,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <locale.h>
 
+int _newlib_heap_size_user = 256 * 1024 * 1024;
+
 static char path_argv[MAX_OSPATH];
 
 bool Sys_GetPath(sysPath_t type, idStr &path) {
@@ -95,6 +97,8 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 #ifdef __ANDROID__
 		s = getenv("USER_FILES");
 		idStr::snPrintf(buf, sizeof(buf), "%s/d3es/config", s);
+#elif defined(VITA)
+		idStr::snPrintf(buf, sizeof(buf), "%s", "ux0:data/dhewm3");
 #else
 		s = getenv("XDG_CONFIG_HOME");
 		if (s)
@@ -109,6 +113,8 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 #ifdef __ANDROID__
 		s = getenv("USER_FILES");
 		idStr::snPrintf(buf, sizeof(buf), "%s/d3es/saves", s);
+#elif defined(VITA)
+		idStr::snPrintf(buf, sizeof(buf), "%s", "ux0:data/dhewm3");
 #else
 		s = getenv("XDG_DATA_HOME");
 		if (s)
@@ -121,6 +127,7 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 
 	case PATH_EXE:
 		idStr::snPrintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
+#ifndef VITA
 		len = readlink(buf, buf2, sizeof(buf2));
 		if (len != -1) {
 			if (len < MAX_OSPATH) {
@@ -131,7 +138,7 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 			path = buf2;
 			return true;
 		}
-
+#endif
 		if (path_argv[0] != 0) {
 			path = path_argv;
 			return true;
@@ -161,7 +168,7 @@ returns in megabytes
 int Sys_GetSystemRam( void ) {
 	long	count, page_size;
 	int		mb;
-
+#ifndef VITA
 	count = sysconf( _SC_PHYS_PAGES );
 	if ( count == -1 ) {
 		common->Printf( "GetSystemRam: sysconf _SC_PHYS_PAGES failed\n" );
@@ -175,6 +182,9 @@ int Sys_GetSystemRam( void ) {
 	mb= (int)( (double)count * (double)page_size / ( 1024 * 1024 ) );
 	// round to the nearest 16Mb
 	mb = ( mb + 8 ) & ~15;
+#else
+	mb = _newlib_heap_size_user / (1024 * 1024);
+#endif
 	return mb;
 }
 
@@ -197,9 +207,11 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 		if ( stat( exeName, &buf ) == -1 ) {
 			printf( "stat %s failed: %s\n", exeName, strerror( errno ) );
 		} else {
+#ifndef VITA
 			if ( chmod( exeName, buf.st_mode | S_IXUSR ) == -1 ) {
 				printf( "cmod +x %s failed: %s\n", exeName, strerror( errno ) );
 			}
+#endif
 		}
 	}
 	if ( dofork ) {
@@ -215,7 +227,9 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 				_exit( 0 );
 			} else {
 				printf( "execl %s\n", exeName );
+#ifndef VITA
 				execl( exeName, exeName, NULL );
+#endif
 				printf( "execl failed: %s\n", strerror( errno ) );
 				_exit( -1 );
 			}
@@ -232,7 +246,9 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 				sleep( 1 );	// on some systems I've seen that starting the new process and exiting this one should not be too close
 		} else {
 			printf( "execl %s\n", exeName );
+#ifndef VITA
 			execl( exeName, exeName, NULL );
+#endif
 			printf( "execl failed: %s\n", strerror( errno ) );
 		}
 		// terminate
@@ -287,6 +303,27 @@ void idSysLocal::OpenURL( const char *url, bool quit ) {
 	sys->StartProcess( cmdline, quit );
 }
 
+#ifdef VITA
+#include <vitasdk.h>
+int doom_main (unsigned int argc, void* argv) {
+	path_argv[0] = 0;
+
+	// some ladspa-plugins (that may be indirectly loaded by doom3 if they're
+	// used by alsa) call setlocale(LC_ALL, ""); This sets LC_ALL to $LANG or
+	// $LC_ALL which usually is not "C" and will fuck up scanf, strtod
+	// etc when using a locale that uses ',' as a float radix.
+	// so set $LC_ALL to "C".
+	setenv("LC_ALL", "C", 1);
+
+	common->Init( 0, NULL );
+
+	while (1) {
+		common->Frame();
+	}
+	return 0;
+}
+#endif
+
 /*
 ===============
 main
@@ -298,13 +335,31 @@ int main_android(int argc, char **argv, int gameMod_) {
 int main(int argc, char **argv) {
 #endif
 
+#ifdef VITA
+	// Setting maximum clocks
+	scePowerSetArmClockFrequency(444);
+	scePowerSetBusClockFrequency(222);
+	scePowerSetGpuClockFrequency(222);
+	scePowerSetGpuXbarClockFrequency(166);
+	
+	// We need a bigger stack to run Doom 3, so we create a new thread with a proper stack size
+	SceUID main_thread = sceKernelCreateThread("Doom 3", doom_main, 0x40, 0x200000, 0, 0, NULL);
+	if (main_thread >= 0){
+		sceKernelStartThread(main_thread, 0, NULL);
+		sceKernelWaitThreadEnd(main_thread, NULL, NULL);
+	}
+	return 0;
+#endif
+
 #ifdef __ANDROID__
 	gameMod = gameMod_;
 #endif
 	// fallback path to the binary for systems without /proc
 	// while not 100% reliable, its good enough
 	if (argc > 0) {
+#ifndef VITA
 		if (!realpath(argv[0], path_argv))
+#endif
 			path_argv[0] = 0;
 	} else {
 		path_argv[0] = 0;

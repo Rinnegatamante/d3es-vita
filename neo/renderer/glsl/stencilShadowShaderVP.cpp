@@ -17,22 +17,13 @@
 
 #include "glsl_shaders.h"
 
-const char * const stencilShadowShaderVP = R"(
-#version 100
-precision mediump float;
-        
-// In
-attribute highp vec4 attr_Vertex;
-        
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform vec4 u_lightOrigin;
-        
-// Out
-// gl_Position
-        
-void main(void)
-{
-  gl_Position = u_modelViewProjectionMatrix * (attr_Vertex.w * u_lightOrigin + attr_Vertex - u_lightOrigin);
+const char * const stencilShadowShaderVP = R"(      
+void main(
+	float4 attr_Vertex,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4 u_lightOrigin,
+	float4 out gl_Position : POSITION
+) {
+  gl_Position = mul(attr_Vertex.w * u_lightOrigin + attr_Vertex - u_lightOrigin, u_modelViewProjectionMatrix);
 }
 )";

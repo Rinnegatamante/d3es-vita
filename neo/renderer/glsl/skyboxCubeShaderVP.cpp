@@ -18,35 +18,26 @@
 #include "glsl_shaders.h"
 
 const char * const skyboxCubeShaderVP = R"(
-#version 100
-precision mediump float;
-  
-// In
-attribute highp vec4 attr_Vertex;
-attribute lowp vec4 attr_Color;
-  
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_textureMatrix;
-uniform lowp float u_colorAdd;
-uniform lowp float u_colorModulate;
-uniform vec4 u_viewOrigin;
-  
-// Out
-// gl_Position
-varying vec3 var_TexCoord;
-varying lowp vec4 var_Color;
-  
-void main(void)
-{
-  var_TexCoord = (u_textureMatrix * (attr_Vertex - u_viewOrigin)).xyz;
+void main (
+	float4 attr_Vertex,
+	float4 attr_Color,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_textureMatrix,
+	uniform float u_colorAdd,
+	uniform float u_colorModulate,
+	uniform float4 u_viewOrigin,
+	float3 out var_TexCoord : TEXCOORD0,
+	float4 out var_Color : COLOR,
+	float4 out gl_Position : POSITION
+) {
+  var_TexCoord = mul(attr_Vertex - u_viewOrigin, u_textureMatrix).xyz;
 
-  if (u_colorModulate == 0.0) {
-    var_Color = vec4(u_colorAdd);
+  if (u_colorModulate == 0.0f) {
+    var_Color = float4(u_colorAdd);
   } else {
-    var_Color = (attr_Color * u_colorModulate) + vec4(u_colorAdd);
+    var_Color = (attr_Color * u_colorModulate) + float4(u_colorAdd);
   }
     
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 }
 )";

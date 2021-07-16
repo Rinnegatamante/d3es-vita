@@ -18,39 +18,27 @@
 #include "glsl_shaders.h"
 
 const char * const reflectionCubeShaderVP = R"(
-#version 100
-precision mediump float;
-  
-// In
-attribute highp vec4 attr_Vertex;
-attribute lowp vec4 attr_Color;
-attribute vec3 attr_TexCoord;
-  
-// Uniforms
-uniform highp mat4 u_modelViewProjectionMatrix;
-uniform mat4 u_modelViewMatrix;
-uniform mat4 u_textureMatrix;
-uniform lowp float u_colorAdd;
-uniform lowp float u_colorModulate;
-  
-// Out
-// gl_Position
-varying vec3 var_TexCoord;
-varying lowp vec4 var_Color;
-  
-void main(void)
-{
-  var_TexCoord = (u_textureMatrix * reflect( normalize( u_modelViewMatrix * attr_Vertex ),
-                                            // This suppose the modelView matrix is orthogonal
-                                            // Otherwise, we should use the inverse transpose
-                                            u_modelViewMatrix * vec4(attr_TexCoord,0.0) )).xyz ;
+void main(
+	float4 attr_Vertex,
+	float4 attr_Color,
+	float3 attr_TexCoord,
+	uniform float4x4 u_modelViewProjectionMatrix,
+	uniform float4x4 u_modelViewMatrix,
+	uniform float4x4 u_textureMatrix,
+	uniform float u_colorAdd,
+	uniform float u_colorModulate,
+	float3 out var_TexCoord : TEXCOORD0,
+	float4 out var_Color : COLOR,
+	float4 out gl_Position : POSITION
+) {
+	var_TexCoord = mul(reflect(normalize(mul(attr_Vertex, u_modelViewMatrix)),mul(float4(attr_TexCoord, 0.0f), u_modelViewMatrix)), u_textureMatrix).xyz ;
 
-  if (u_colorModulate == 0.0) {
-    var_Color = vec4(u_colorAdd);
+  if (u_colorModulate == 0.0f) {
+    var_Color = float4(u_colorAdd);
   } else {
-    var_Color = (attr_Color * u_colorModulate) + vec4(u_colorAdd);
+    var_Color = (attr_Color * u_colorModulate) + float4(u_colorAdd);
   }
     
-  gl_Position = u_modelViewProjectionMatrix * attr_Vertex;
+  gl_Position = mul(attr_Vertex, u_modelViewProjectionMatrix);
 }
 )";

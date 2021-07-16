@@ -31,13 +31,14 @@ If you have questions concerning this license or the applicable additional terms
 #include <errno.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 #include <sys/time.h>
 #include <pwd.h>
 #include <dlfcn.h>
 #include <termios.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <vitasdk.h>
 
 #include "sys/platform.h"
 #include "idlib/containers/StrList.h"
@@ -48,6 +49,44 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/sys_local.h"
 
 #include "sys/posix/posix_public.h"
+
+extern "C" int __real_access(const char *fname, int mode);
+extern "C" FILE *__real_fopen(char *fname, char *mode);
+extern "C" int __real_open(const char *fname, int mode);
+extern "C" DIR *__real_opendir(const char *fname);
+
+char patched_fname[512];
+extern "C" char *patch_fname(char *fname) {
+	if (strstr(fname, "ux0")) {
+		return fname;
+	}
+
+	if (fname[0] == '.') {
+		char *s = strstr(fname, "/");
+		if (s)
+			fname = s + 1;
+		else
+			fname++;
+	}
+	sprintf(patched_fname, "ux0:data/dhewm3/%s", fname);
+	return patched_fname;
+}
+
+extern "C" int __wrap_access(const char *fname, int mode) {
+	return __real_access(patch_fname(fname), mode);
+}
+
+extern "C" FILE *__wrap_fopen(char *fname, char *mode) {
+	return __real_fopen(patch_fname(fname), mode);
+}
+
+extern "C" int __wrap_open(const char *fname, int mode) {
+	return __real_open(patch_fname(fname), mode);
+}
+
+extern "C" DIR *__wrap_opendir(const char *fname) {
+	return __real_opendir(patch_fname(fname));
+}
 
 #ifdef __ANDROID__
 #include "LogWritter.h"
@@ -67,10 +106,10 @@ static int				history_current = 0;			// goes back in history
 idEditField				history_backup;				// the base edit line
 
 // terminal support
-idCVar in_tty( "in_tty", "1", CVAR_BOOL | CVAR_INIT | CVAR_SYSTEM, "terminal tab-completion and history" );
+idCVar in_tty( "in_tty", "0", CVAR_BOOL | CVAR_INIT | CVAR_SYSTEM, "terminal tab-completion and history" );
 
-static bool				tty_enabled = false;
-static struct termios	tty_tc;
+//static bool				tty_enabled = false;
+//static struct termios	tty_tc;
 
 // pid - useful when you attach to gdb..
 idCVar com_pid( "com_pid", "0", CVAR_INTEGER | CVAR_INIT | CVAR_SYSTEM, "process id" );
@@ -86,13 +125,14 @@ Posix_Exit
 ================
 */
 void Posix_Exit(int ret) {
+#ifndef VITA
 	if ( tty_enabled ) {
 		Sys_Printf( "shutdown terminal support\n" );
 		if ( tcsetattr( 0, TCSADRAIN, &tty_tc ) == -1 ) {
 			Sys_Printf( "tcsetattr failed: %s\n", strerror( errno ) );
 		}
 	}
-
+#endif
 	// process spawning. it's best when it happens after everything has shut down
 	if ( exit_spawn[0] ) {
 		Sys_DoStartProcess( exit_spawn, false );
@@ -160,7 +200,7 @@ Sys_Mkdir
 ================
 */
 void Sys_Mkdir( const char *path ) {
-	mkdir(path, 0777);
+	sceIoMkdir(path, 0777);
 }
 
 /*
@@ -232,14 +272,7 @@ Posix_Cwd
 ================
 */
 const char *Posix_Cwd( void ) {
-	static char cwd[MAX_OSPATH];
-
-	if (getcwd( cwd, sizeof( cwd ) - 1 ))
-		cwd[MAX_OSPATH-1] = 0;
-	else
-		cwd[0] = 0;
-
-	return cwd;
+	return "ux0:data/dhewm3";
 }
 
 /*
@@ -272,10 +305,15 @@ TODO: OSX - use the native API instead? NSModule
 =================
 */
 uintptr_t Sys_DLL_Load( const char *path ) {
+#ifndef VITA
 #ifdef __ANDROID__
 	Sys_Printf( "Sys_DLL_Load %s\n", path );
 #endif
 	return (uintptr_t)dlopen( path, RTLD_NOW );
+#else
+	sceClibPrintf("Attempting to load %s DLL\n");
+	return NULL;
+#endif
 }
 
 /*
@@ -284,12 +322,16 @@ Sys_DLL_GetProcAddress
 =================
 */
 void* Sys_DLL_GetProcAddress( uintptr_t handle, const char *sym ) {
+#ifndef VITA
 	const char *error;
 	void *ret = dlsym( (void *)handle, sym );
 	if ((error = dlerror()) != NULL)  {
 		Sys_Printf( "dlsym '%s' failed: %s\n", sym, error );
 	}
 	return ret;
+#else
+	return NULL;
+#endif
 }
 
 /*
@@ -298,7 +340,9 @@ Sys_DLL_Unload
 =================
 */
 void Sys_DLL_Unload( uintptr_t handle ) {
+#ifndef VITA
 	dlclose( (void *)handle );
+#endif
 }
 
 /*
@@ -422,6 +466,7 @@ static void signalhandlerConsoleStuff(int sig)
 		// and afterwards set to background..
 		// as it's in background now, disable console input
 		// (if someone uses fg afterwards that's their problem, this is already obscure enough)
+#ifndef VITA
 		if(tty_enabled) {
 			Sys_Printf( "Sent to background, disabling terminal support.\n" );
 			in_tty.SetBool( false );
@@ -432,8 +477,8 @@ static void signalhandlerConsoleStuff(int sig)
 			// Note: this is only about TTY input, we'll still print to stdout
 			// (which, I think, is normal for processes running in the background)
 		}
+#endif
 	}
-
 	// apparently we get SIGTTOU from tcsetattr() in Posix_InitConsoleInput()
 	// so we'll handle the disabling console there (it checks for disableTTYinput)
 
@@ -442,15 +487,18 @@ static void signalhandlerConsoleStuff(int sig)
 
 static void installSigHandler(int sig, int flags, void (*handler)(int))
 {
+#ifndef VITA
 	struct sigaction sigact = {0};
 	sigact.sa_handler = handler;
 	sigemptyset(&sigact.sa_mask);
 	sigact.sa_flags = flags;
 	sigaction(sig, &sigact, NULL);
+#endif
 }
 
 void Posix_InitSignalHandlers( void )
 {
+#ifndef VITA
 	for(int i=0; i<sizeof(crashSigs)/sizeof(crashSigs[0]); ++i)
 	{
 		installSigHandler(crashSigs[i], SA_RESTART|SA_RESETHAND, signalhandlerCrash);
@@ -458,6 +506,7 @@ void Posix_InitSignalHandlers( void )
 
 	installSigHandler(SIGTTIN, 0, signalhandlerConsoleStuff);
 	installSigHandler(SIGTTOU, 0, signalhandlerConsoleStuff);
+#endif
 }
 
 // ----------- signal handling stuff done ------------
@@ -468,6 +517,7 @@ Posix_InitConsoleInput
 ===============
 */
 void Posix_InitConsoleInput( void ) {
+#ifndef VITA
 	struct termios tc;
 
 	common->StartupVariable( "in_tty", false );
@@ -536,6 +586,7 @@ void Posix_InitConsoleInput( void ) {
 	} else {
 		Sys_Printf( "terminal support disabled\n" );
 	}
+#endif
 }
 
 /*
@@ -563,6 +614,7 @@ void tty_Right() {
 // clear the display of the line currently edited
 // bring cursor back to beginning of line
 void tty_Hide() {
+#ifndef VITA
 	int len, buf_len;
 	if ( !tty_enabled ) {
 		return;
@@ -583,10 +635,12 @@ void tty_Hide() {
 		buf_len--;
 	}
 	input_hide++;
+#endif
 }
 
 // show the current line
 void tty_Show() {
+#ifndef VITA
 	//	int i;
 	if ( !tty_enabled ) {
 		return;
@@ -609,14 +663,17 @@ void tty_Show() {
 			len--;
 		}
 	}
+#endif
 }
 
 void tty_FlushIn() {
+#ifndef VITA
   int key;
   while ( ( key = getchar() ) != EOF ) {
 	  Sys_Printf( "'%d' ", key );
   }
   Sys_Printf( "\n" );
+#endif
 }
 
 /*
@@ -627,6 +684,7 @@ Return NULL if a complete line is not ready.
 ================
 */
 char *Sys_ConsoleInput( void ) {
+#ifndef VITA
 	if ( tty_enabled ) {
 		int	key;
 		bool	hidden = false;
@@ -873,6 +931,7 @@ char *Sys_ConsoleInput( void ) {
 		return input_ret;
 #endif
 	}
+#endif
 	return NULL;
 }
 

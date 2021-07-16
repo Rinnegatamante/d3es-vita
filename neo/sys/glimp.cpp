@@ -38,6 +38,13 @@ If you have questions concerning this license or the applicable additional terms
 #include <SDL_syswm.h>
 #endif
 
+#ifdef VITA
+#include <vitasdk.h>
+extern "C" void vglSwapBuffers(GLboolean has_commondialog);
+extern "C" void vglInitExtended(int legacy_pool_size, int width, int height, int ram_threshold, SceGxmMultisampleMode msaa);
+extern "C" void *vglGetProcAddress(const char *name);
+#endif
+
 idCVar in_nograb("in_nograb", "0", CVAR_SYSTEM | CVAR_NOCHEAT, "prevents input grabbing");
 idCVar r_waylandcompat("r_waylandcompat", "0", CVAR_SYSTEM | CVAR_NOCHEAT | CVAR_ARCHIVE, "wayland compatible framebuffer");
 
@@ -54,6 +61,7 @@ static SDL_Surface *window = NULL;
 
 static void SetSDLIcon()
 {
+#ifndef VITA
 	Uint32 rmask, gmask, bmask, amask;
 
 	// ok, the following is pretty stupid.. SDL_CreateRGBSurfaceFrom() pretends to use a void* for the data,
@@ -83,6 +91,7 @@ static void SetSDLIcon()
 #endif
 
 	SDL_FreeSurface(icon);
+#endif
 }
 
 /*
@@ -90,9 +99,23 @@ static void SetSDLIcon()
 GLimp_Init
 ===================
 */
-bool GLimp_Init(glimpParms_t parms) {
-	common->Printf("Initializing OpenGL subsystem\n");
+int crasher(unsigned int argc, void *argv) {
+	uint32_t *nullppointer = NULL;
+	for (;;) {
+		SceCtrlData pad;
+		sceCtrlPeekBufferPositive(0, &pad, 1);
+		if (pad.buttons & SCE_CTRL_SELECT) *nullppointer = 0;
+		sceKernelDelayThread(100);
+	}
+	return 0;
+}
 
+bool GLimp_Init(glimpParms_t parms) {
+	SceUID crasher_thread = sceKernelCreateThread("crasher", crasher, 0x40, 0x1000, 0, 0, NULL);
+	sceKernelStartThread(crasher_thread, 0, NULL);
+	
+	common->Printf("Initializing OpenGL subsystem\n");
+#ifndef VITA
 	assert(SDL_WasInit(SDL_INIT_VIDEO));
 
 	Uint32 flags = SDL_WINDOW_OPENGL;
@@ -144,8 +167,13 @@ bool GLimp_Init(glimpParms_t parms) {
 	SDL_GetWindowSize(window, &glConfig.vidWidthReal, &glConfig.vidHeightReal);
 
 	glConfig.isFullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
-
-
+#else
+	glConfig.vidWidthReal = 960;
+	glConfig.vidHeightReal = 544;
+	glConfig.isFullscreen = true;
+	vglInitExtended(0, glConfig.vidWidthReal, glConfig.vidHeightReal, 10 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+#endif
+	
 	//common->Printf("Using %d color bits, %d depth, %d stencil display\n",
 	//				channelcolorbits, tdepthbits, tstencilbits);
 
@@ -155,12 +183,12 @@ bool GLimp_Init(glimpParms_t parms) {
 
 	glConfig.displayFrequency = 0;
 
-
+#ifndef VITA
 	if (!window) {
 		common->Warning("No usable GL mode found: %s", SDL_GetError());
 		return false;
 	}
-
+#endif
 	GLimp_WindowActive(true);
 
 	return true;
@@ -183,7 +211,7 @@ GLimp_Shutdown
 */
 void GLimp_Shutdown() {
 	common->Printf("Shutting down OpenGL subsystem\n");
-
+#ifndef VITA
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (context) {
 		SDL_GL_DeleteContext(context);
@@ -195,6 +223,7 @@ void GLimp_Shutdown() {
 		window = NULL;
 	}
 #endif
+#endif
 }
 
 /*
@@ -203,10 +232,14 @@ GLimp_SwapBuffers
 ===================
 */
 void GLimp_SwapBuffers() {
+#ifndef VITA
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_GL_SwapWindow(window);
 #else
 	SDL_GL_SwapBuffers();
+#endif
+#else
+	vglSwapBuffers(GL_FALSE);
 #endif
 }
 
@@ -216,6 +249,7 @@ GLimp_SetGamma
 =================
 */
 void GLimp_SetGamma(unsigned short red[256], unsigned short green[256], unsigned short blue[256]) {
+#ifndef VITA
 	if (!window) {
 		common->Warning("GLimp_SetGamma called without window");
 		return;
@@ -227,6 +261,7 @@ void GLimp_SetGamma(unsigned short red[256], unsigned short green[256], unsigned
 	if (SDL_SetGammaRamp(red, green, blue))
 #endif
 		common->Warning("Couldn't set gamma ramp: %s", SDL_GetError());
+#endif
 }
 
 /*
@@ -235,8 +270,10 @@ GLimp_ActivateContext
 =================
 */
 void GLimp_ActivateContext() {
+#ifndef VITA
 	//common->DPrintf("TODO: GLimp_ActivateContext\n");
 	SDL_GL_MakeCurrent(window, context);
+#endif
 }
 
 /*
@@ -245,8 +282,10 @@ GLimp_DeactivateContext
 =================
 */
 void GLimp_DeactivateContext() {
+#ifndef VITA
 	//common->DPrintf("TODO: GLimp_DeactivateContext\n");
 	SDL_GL_MakeCurrent(window, NULL);
+#endif
 }
 
 /*
@@ -258,6 +297,7 @@ GLimp_ExtensionPointer
 #include <dlfcn.h>
 #endif
 GLExtension_t GLimp_ExtensionPointer(const char *name) {
+#ifndef VITA
 	assert(SDL_WasInit(SDL_INIT_VIDEO));
 
 #ifdef __ANDROID__
@@ -280,6 +320,9 @@ GLExtension_t GLimp_ExtensionPointer(const char *name) {
 #endif
 
 	return (GLExtension_t)SDL_GL_GetProcAddress(name);
+#else
+	return (GLExtension_t)vglGetProcAddress(name);
+#endif
 }
 
 void GLimp_WindowActive(bool active)
@@ -305,12 +348,12 @@ void GLimp_GrabInput(int flags) {
 
 	if (in_nograb.GetBool())
 		grab = false;
-
+#ifndef VITA
 	if (!window) {
 		common->Warning("GLimp_GrabInput called without window");
 		return;
 	}
-
+#endif
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_ShowCursor(flags & GRAB_HIDECURSOR ? SDL_DISABLE : SDL_ENABLE);
 	SDL_SetRelativeMouseMode((grab && (flags & GRAB_HIDECURSOR)) ? SDL_TRUE : SDL_FALSE);

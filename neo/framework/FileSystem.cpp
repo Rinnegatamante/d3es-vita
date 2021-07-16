@@ -615,7 +615,7 @@ FILE *idFileSystemLocal::OpenOSFile( const char *fileName, const char *mode, idS
 					break;
 				} else {
 					// not supposed to happen if ListOSFiles is doing it's job correctly
-					common->Warning( "idFileSystemLocal::OpenFileRead: fs_caseSensitiveOS 1 could not open %s", entry.c_str() );
+					common->Warning( "idFileSystemLocal::OpenFileRead: fs_caseSensitiveOS 1 could not open %s with mode %s", entry.c_str(), mode );
 				}
 			}
 		}
