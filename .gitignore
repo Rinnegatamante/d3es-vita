@@ -1,0 +1,10 @@
+/build*
+*~
+.*.swp
+*.pyc
+.cproject
+.project
+.settings/
+
+/dhewm*
+/*-releases/
