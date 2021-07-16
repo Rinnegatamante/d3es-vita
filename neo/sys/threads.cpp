@@ -408,6 +408,7 @@ void Sys_CreateThread(xthread_t function, void *parms, xthreadInfo& info, const 
 	args[0] = (uint32_t)parms;
 	args[1] = (uint32_t)function;
 	SceUID t = sceKernelCreateThread(name, vita_thread, 0x40, 2 * 1024 * 1024, 0, 0, NULL);
+	sceKernelStartThread(t, 8, args);
 #else
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	SDL_Thread *t = SDL_CreateThread(function, name, parms);
