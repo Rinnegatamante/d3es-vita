@@ -99,7 +99,7 @@ static void SetSDLIcon()
 GLimp_Init
 ===================
 */
-int crasher(unsigned int argc, void *argv) {
+/*int crasher(unsigned int argc, void *argv) {
 	uint32_t *nullppointer = NULL;
 	for (;;) {
 		SceCtrlData pad;
@@ -108,11 +108,11 @@ int crasher(unsigned int argc, void *argv) {
 		sceKernelDelayThread(100);
 	}
 	return 0;
-}
+}*/
 
 bool GLimp_Init(glimpParms_t parms) {
-	SceUID crasher_thread = sceKernelCreateThread("crasher", crasher, 0x40, 0x1000, 0, 0, NULL);
-	sceKernelStartThread(crasher_thread, 0, NULL);
+	//SceUID crasher_thread = sceKernelCreateThread("crasher", crasher, 0x40, 0x1000, 0, 0, NULL);
+	//sceKernelStartThread(crasher_thread, 0, NULL);
 	
 	common->Printf("Initializing OpenGL subsystem\n");
 #ifndef VITA
@@ -177,8 +177,8 @@ bool GLimp_Init(glimpParms_t parms) {
 	//common->Printf("Using %d color bits, %d depth, %d stencil display\n",
 	//				channelcolorbits, tdepthbits, tstencilbits);
 
-	glConfig.colorBits = 24;
-	glConfig.depthBits = 16;
+	glConfig.colorBits = 32;
+	glConfig.depthBits = 32;
 	glConfig.stencilBits = 8;
 
 	glConfig.displayFrequency = 0;

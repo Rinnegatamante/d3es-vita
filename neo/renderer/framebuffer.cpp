@@ -133,7 +133,7 @@ static void createShaders (void)
    // get attrib locations
 	m_positionLoc = qglGetAttribLocation(r_program, "a_position");
 	m_texCoordLoc = qglGetAttribLocation(r_program, "a_texCoord");
-	m_samplerLoc  = qglGetUniformLocation(r_program, "s_texture");
+	//m_samplerLoc  = qglGetUniformLocation(r_program, "s_texture");
 
 	if(m_positionLoc == -1)
 		LOG("Failed to get m_positionLoc");
@@ -141,10 +141,10 @@ static void createShaders (void)
 	if(m_texCoordLoc == -1)
 		LOG("Failed to get m_texCoordLoc");
 
-	if(m_samplerLoc == -1)
-		LOG("Failed to get m_samplerLoc");
+	//if(m_samplerLoc == -1)
+	//	LOG("Failed to get m_samplerLoc");
 
-	qglUniform1i(m_samplerLoc, 0);
+	//qglUniform1i(m_samplerLoc, 0);
 }
 
 
@@ -191,7 +191,7 @@ void R_InitFrameBuffer()
 	qglGenFramebuffers(1, &m_framebuffer);
 
 	// Create renderbuffer
-	qglGenRenderbuffers(1, &m_depthbuffer);
+	/*qglGenRenderbuffers(1, &m_depthbuffer);
 	qglBindRenderbuffer(GL_RENDERBUFFER, m_depthbuffer);
 
 	if(glConfig.depthStencilAvailable)
@@ -204,7 +204,7 @@ void R_InitFrameBuffer()
 		qglGenRenderbuffers(1, &m_stencilbuffer);
 		qglBindRenderbuffer(GL_RENDERBUFFER, m_stencilbuffer);
         qglRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, m_framebuffer_width, m_framebuffer_height);
-	}
+	}*/
 
 	createShaders();
 }
@@ -216,12 +216,12 @@ void R_FrameBufferStart()
 
 	// Render to framebuffer
     qglBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    qglBindRenderbuffer(GL_RENDERBUFFER, 0);
+   // qglBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_framebuffer_texture, 0);
 
     // Attach combined depth+stencil
-    if(glConfig.depthStencilAvailable)
+    /*if(glConfig.depthStencilAvailable)
     {
     	qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
     	qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
@@ -230,7 +230,7 @@ void R_FrameBufferStart()
 	{
 		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
 		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_stencilbuffer);
-	}
+	}*/
 
     GLenum result = qglCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(result != GL_FRAMEBUFFER_COMPLETE)
@@ -297,7 +297,7 @@ void R_FrameBufferEnd()
 
 
 	// Set the sampler texture unit to 0
-	qglUniform1i(m_samplerLoc, 0);
+	//qglUniform1i(m_samplerLoc, 0);
 
 	qglViewport (0, 0, glConfig.vidWidthReal, glConfig.vidHeightReal );
 

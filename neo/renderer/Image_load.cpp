@@ -33,6 +33,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "renderer/Image.h"
 
+#ifdef VITA
+#include <vitasdk.h>
+#endif
 
 int MakePowerOfTwo( int num ) {
 	int		pot;
@@ -722,6 +725,8 @@ void idImage::GenerateCubeImage( const byte *pic[6], int size,
 #ifndef VITA
 	qglTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	qglTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#else
+	sceClibPrintf("VITA: A cubemap is being allocated!\n");
 #endif
 	// set the minimize / maximize filtering
 	switch( filter ) {
@@ -1069,6 +1074,8 @@ void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight, bo
 	if ( imageHeight != potHeight ) {
 		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, imageHeight, x, y+imageHeight-1, imageWidth, 1 );
 	}
+#else
+	sceClibPrintf("VITA: CopyFramebuffer called, skipped\n");
 #endif
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -1111,6 +1118,8 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight ) {
 		// it and don't try and do a texture compression or some other silliness
 		qglCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, x, y, imageWidth, imageHeight );
 	}
+#else
+	sceClibPrintf("VITA: CopyDepthBuffer called, skipped\n");
 #endif
 //	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 //	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
