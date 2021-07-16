@@ -272,34 +272,18 @@ typedef struct vidmode_s {
 } vidmode_t;
 
 vidmode_t r_vidModes[] = {
-	// Useless modes (UI will not fit)
-	{ "Mode  0: 320x240",		 320,	240 },
-	{ "Mode  1: 400x300",		 400,	300 },
-	{ "Mode  2: 512x384",		 512,	384 },
-	// Usable modes (UI will be OK)
-	{ "Mode  3: 640x480",		 640,	480 },
-	{ "Mode  4: 800x600",		 800,	600 },
-	{ "Mode  5: 960x640",    960, 640 },
-	{ "Mode  6: 1024x640",  1024, 640 },
-	{ "Mode  7: 1280x720",	1280,	720 },
-	{ "Mode  8: 1024x768",	1024,	768 },
-	{ "Mode  9: 1366x768",	1366,	768 },
-	{ "Mode 10: 1152x864",	1152,	864 },
-	{ "Mode 11: 1440x900",	1440,	900 },
-	{ "Mode 12: 1600x900",	1600,	900 },
-	{ "Mode 13: 1280x1024",	1280,	1024 },
-	{ "Mode 14: 1400x1050",	1400,	1050 },
-	{ "Mode 15: 1680x1050",	1680,	1050 },
-	{ "Mode 16: 1920x1080",	1920,	1080 },
-	{ "Mode 17: 1600x1200",	1600,	1200 },
-	{ "Mode 18: 1920x1200",	1920,	1200 },
+	{ "Mode  0: 960x544",		 960,	544},
 };
 // DG: made this an enum so even stupid compilers accept it as array length below
 enum {	s_numVidModes = sizeof( r_vidModes ) / sizeof( r_vidModes[0] ) };
 
 static bool R_GetModeInfo( int *width, int *height, int mode ) {
 	vidmode_t	*vm;
-
+	
+#ifdef VITA
+	mode = 0;
+#endif
+	
 	if ( mode < -1 ) {
 		return false;
 	}
