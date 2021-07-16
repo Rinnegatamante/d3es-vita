@@ -30,6 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sound/snd_local.h"
 
+extern ALCdevice *alDevice;
+extern ALCcontext *alContext;
+
 #ifdef ID_DEDICATED
 idCVar idSoundSystemLocal::s_noSound( "s_noSound", "1", CVAR_SOUND | CVAR_BOOL | CVAR_ROM, "" );
 #else
@@ -332,7 +335,7 @@ void idSoundSystemLocal::Init() {
 	alcResetDeviceSOFT = NULL;
 	resetRetryCount = 0;
 	lastCheckTime = 0;
-
+#ifndef VITA
 	// DG: no point in initializing OpenAL if sound is disabled with s_noSound
 	if ( s_noSound.GetBool() ) {
 		common->Printf( "Sound disabled with s_noSound 1 !\n" );
@@ -347,7 +350,6 @@ void idSoundSystemLocal::Init() {
 			device = NULL;
 		else if (!idStr::Icmp(device, "default"))
 			device = NULL;
-#ifndef VITA
 		if ( alcIsExtensionPresent(NULL, "ALC_ENUMERATE_ALL_EXT") ) {
 			const char *devs = alcGetString(NULL, ALC_ALL_DEVICES_SPECIFIER);
 			bool found = false;
@@ -370,8 +372,7 @@ void idSoundSystemLocal::Init() {
 				device = NULL;
 			}
 		}
-#endif	
-		device = NULL;
+
 		openalDevice = alcOpenDevice(device);
 		if ( !openalDevice && device ) {
 			common->Printf( "OpenAL: failed to open device '%s' (0x%x), trying default...\n", device, alGetError() );
@@ -383,17 +384,8 @@ void idSoundSystemLocal::Init() {
 			common->Printf( "OpenAL: failed to open default device (0x%x), disabling sound\n", alGetError() );
 			openalContext = NULL;
 		} else {
-#ifdef VITA
-			int attrlist[6];
-			attrlist[0] = ALC_FREQUENCY;
-			attrlist[1] = 44100;
-			attrlist[2] = ALC_SYNC;
-			attrlist[3] = AL_FALSE;
-			attrlist[4] = 0;
-			openalContext = alcCreateContext( openalDevice, attrlist );
-#else
-			openalContext = alcCreateContext( openalDevice, NULL );
-#endif
+			ALCint attr[] = {ALC_FREQUENCY, PRIMARYFREQ, 0};
+			openalContext = alcCreateContext( openalDevice, attr );
 			if ( openalContext == NULL ) {
 				common->Printf( "OpenAL: failed to create context (0x%x), disabling sound\n", alcGetError(openalDevice) );
 				alcCloseDevice( openalDevice );
@@ -401,7 +393,10 @@ void idSoundSystemLocal::Init() {
 			}
 		}
 	}
-
+#else
+	openalDevice = alDevice;
+	openalContext = alContext;
+#endif
 	// DG: only do these things if opening device and creating context succeeded and sound is enabled
 	//     (if sound is disabled with s_noSound, openalContext is NULL)
 	if ( openalContext != NULL )

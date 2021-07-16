@@ -34,6 +34,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <SDL_main.h>
 
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
+
 #include "sys/platform.h"
 #include "framework/Licensee.h"
 #include "framework/FileSystem.h"
@@ -305,6 +309,10 @@ void idSysLocal::OpenURL( const char *url, bool quit ) {
 
 #ifdef VITA
 #include <vitasdk.h>
+
+ALCdevice *alDevice;
+ALCcontext *alContext;
+
 int doom_main (unsigned int argc, void* argv) {
 	path_argv[0] = 0;
 
@@ -341,6 +349,10 @@ int main(int argc, char **argv) {
 	scePowerSetBusClockFrequency(222);
 	scePowerSetGpuClockFrequency(222);
 	scePowerSetGpuXbarClockFrequency(166);
+	
+	alDevice = alcOpenDevice(NULL);
+	ALCint attr[] = {ALC_FREQUENCY, 44100, 0};
+	alContext = alcCreateContext( alDevice, attr );
 	
 	// We need a bigger stack to run Doom 3, so we create a new thread with a proper stack size
 	SceUID main_thread = sceKernelCreateThread("Doom 3", doom_main, 0x40, 0x200000, 0, 0, NULL);
