@@ -171,6 +171,11 @@ int				Sys_PollKeyboardInputEvents( void );
 int				Sys_ReturnKeyboardInputEvent( const int n, int &ch, bool &state );
 void			Sys_EndKeyboardInputEvents( void );
 
+// joystick input polling
+int				Sys_PollJoystickInputEvents( void );
+int				Sys_ReturnJoystickInputEvent( const int n, int &axis, int &value );
+void			Sys_EndJoystickInputEvents( void );
+
 // mouse input polling
 int				Sys_PollMouseInputEvents( void );
 int				Sys_ReturnMouseInputEvent( const int n, int &action, int &value );

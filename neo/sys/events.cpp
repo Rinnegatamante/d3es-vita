@@ -62,6 +62,10 @@ If you have questions concerning this license or the applicable additional terms
 #define SDLK_PRINTSCREEN SDLK_PRINT
 #endif
 
+#ifdef VITA
+#include <vitasdk.h>
+#endif
+
 const char *kbdNames[] = {
 	"english", "french", "german", "italian", "spanish", "turkish", "norwegian", "brazilian", NULL
 };
@@ -299,22 +303,21 @@ static void PushConsoleEvent(const char *s) {
 
 static inline byte JoyToKey(int button) {
     static const int keymap[] = {
-		/* INVALID    */ K_AUX1,
         /* KEY_A      */ K_ENTER,
         /* KEY_B      */ K_BACKSPACE,
         /* KEY_X      */ K_ALT,
         /* KEY_Y      */ K_CTRL,
         /* KEY_BACK   */ K_TAB,
         /* KEY_GUIDE  */ K_JOY32,
-        /* KEY_START  */ K_SHIFT,
+        /* KEY_START  */ K_ESCAPE,
         /* KEY_LSTICK */ K_AUX10,
         /* KEY_RSTICK */ K_AUX2,
         /* KEY_LSHOULD*/ K_MOUSE2,
         /* KEY_RSHOULD*/ K_MOUSE1,
+		/* KEY_DUP    */ K_UPARROW,
+		/* KEY_DDOWN  */ K_DOWNARROW,
         /* KEY_DLEFT  */ K_LEFTARROW,
-        /* KEY_DUP    */ K_UPARROW,
         /* KEY_DRIGHT */ K_RIGHTARROW,
-        /* KEY_DDOWN  */ K_DOWNARROW,
     };
 
     if (button < 0 || button > 15) return 0;
@@ -470,8 +473,8 @@ void Sys_ShutdownInput() {
 	kbd_polls.Clear();
 	mouse_polls.Clear();
 	joystick_polls.Clear();
-	if (SDL_WasInit(SDL_INIT_JOYSTICK))
-		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+	if (SDL_WasInit(SDL_INIT_GAMECONTROLLER))
+		SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
 
 /*
@@ -681,6 +684,10 @@ sysEvent_t Sys_GetEvent() {
 				res.evValue2 = ev.caxis.value / 256;
 				joystick_polls.Append(joystick_poll_t(res.evValue, res.evValue2));
 				return res;
+			}
+			else if ( ev.jaxis.axis == 1) // top/bot
+			{
+				
 			}
 			else if (ev.caxis.axis == 2 || ev.caxis.axis == 3)
 			{

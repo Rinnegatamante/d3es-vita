@@ -694,13 +694,11 @@ void idUsercmdGenLocal::JoystickMove( void ) {
 		anglespeed = idMath::M_MS2SEC * USERCMD_MSEC;
 	}
 
-	if ( !ButtonState( UB_STRAFE ) ) {
-		viewangles[YAW] += anglespeed * in_yawSpeed.GetFloat() * joystickAxis[AXIS_SIDE];
-		viewangles[PITCH] += anglespeed * in_pitchSpeed.GetFloat() * joystickAxis[AXIS_FORWARD];
-	} else {
-		cmd.rightmove = idMath::ClampChar( cmd.rightmove + joystickAxis[AXIS_SIDE] );
-		cmd.forwardmove = idMath::ClampChar( cmd.forwardmove + joystickAxis[AXIS_FORWARD] );
-	}
+	viewangles[YAW] += anglespeed * in_yawSpeed.GetFloat() * joystickAxis[AXIS_YAW];
+	viewangles[PITCH] += anglespeed * in_pitchSpeed.GetFloat() * joystickAxis[AXIS_PITCH];
+
+	cmd.rightmove = idMath::ClampChar( cmd.rightmove + joystickAxis[AXIS_SIDE] );
+	cmd.forwardmove = idMath::ClampChar( cmd.forwardmove - joystickAxis[AXIS_FORWARD] );
 
 	cmd.upmove = idMath::ClampChar( cmd.upmove + joystickAxis[AXIS_UP] );
 }
@@ -1090,7 +1088,17 @@ idUsercmdGenLocal::Joystick
 ===============
 */
 void idUsercmdGenLocal::Joystick( void ) {
-	memset( joystickAxis, 0, sizeof( joystickAxis ) );
+	int numEvents = Sys_PollJoystickInputEvents();
+
+	// Study each of the buffer elements and process them.
+	for( int i = 0; i < numEvents; i++ ) {
+		int axis;
+		int value;
+		if( Sys_ReturnJoystickInputEvent( i, axis, value ) )
+				joystickAxis[ axis ] = value;
+	}
+
+	Sys_EndJoystickInputEvents();
 }
 
 /*
