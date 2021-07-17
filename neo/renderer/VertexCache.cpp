@@ -48,7 +48,7 @@ static const int	FRAME_MEMORY_BYTES = 0x200000;
 static const int	EXPAND_HEADERS = 1024;
 
 idCVar idVertexCache::r_showVertexCache("r_showVertexCache", "0", CVAR_INTEGER | CVAR_RENDERER, "");
-idCVar idVertexCache::r_vertexBufferMegs("r_vertexBufferMegs", "128", CVAR_INTEGER | CVAR_RENDERER, "");
+idCVar idVertexCache::r_vertexBufferMegs("r_vertexBufferMegs", "64", CVAR_INTEGER | CVAR_RENDERER, "");
 idCVar idVertexCache::r_freeVertexBuffer("r_freeVertexBuffer", "1", CVAR_BOOL | CVAR_RENDERER, "");
 
 idVertexCache		vertexCache;
@@ -87,26 +87,26 @@ void idVertexCache::ActuallyFree(vertCache_t* block) {
 		{
 			if (block->indexBuffer)
             {
-				if (block->vbo != currentBoundVBO_Index) {
+				/*if (block->vbo != currentBoundVBO_Index) {
 					qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, block->vbo);
 				}
 				qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, block->vbo);
 				qglBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, 0, GL_STREAM_DRAW);
-				qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-				//glDeleteBuffers(1, &block->vbo); // Doing this makes it slow AF
-				//block->vbo = -1;
+				qglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
+				glDeleteBuffers(1, &block->vbo); // Doing this makes it slow AF
+				block->vbo = -1;
 				currentBoundVBO_Index = -1;
             }
             else
             {
-				if (block->vbo != currentBoundVBO) {
+				/*if (block->vbo != currentBoundVBO) {
 					qglBindBuffer(GL_ARRAY_BUFFER, block->vbo);
 				}
 				qglBindBuffer(GL_ARRAY_BUFFER, block->vbo);
 				qglBufferData(GL_ARRAY_BUFFER, 0, 0, GL_STREAM_DRAW);
-				qglBindBuffer(GL_ARRAY_BUFFER, 0);
-				//glDeleteBuffers(1, &block->vbo); // Doing this makes it slow AF
-				//block->vbo = -1;
+				qglBindBuffer(GL_ARRAY_BUFFER, 0);*/
+				glDeleteBuffers(1, &block->vbo); // Doing this makes it slow AF
+				block->vbo = -1;
 				currentBoundVBO = -1;
             }
 		}
