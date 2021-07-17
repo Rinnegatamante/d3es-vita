@@ -40,6 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef VITA
 #include <vitasdk.h>
+extern "C" void vglUseVram(GLboolean use);
 extern "C" void vglSwapBuffers(GLboolean has_commondialog);
 extern "C" void vglInitExtended(int legacy_pool_size, int width, int height, int ram_threshold, SceGxmMultisampleMode msaa);
 extern "C" void *vglGetProcAddress(const char *name);
@@ -168,9 +169,12 @@ bool GLimp_Init(glimpParms_t parms) {
 
 	glConfig.isFullscreen = (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
 #else
+	window = SDL_CreateWindow("dummy", 45, 0, 960, 544, SDL_WINDOW_FULLSCREEN);
+
 	glConfig.vidWidthReal = 960;
 	glConfig.vidHeightReal = 544;
 	glConfig.isFullscreen = true;
+	vglUseVram(GL_TRUE);
 	vglInitExtended(0, glConfig.vidWidthReal, glConfig.vidHeightReal, 10 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
 #endif
 	
@@ -181,7 +185,7 @@ bool GLimp_Init(glimpParms_t parms) {
 	glConfig.depthBits = 32;
 	glConfig.stencilBits = 8;
 
-	glConfig.displayFrequency = 0;
+	glConfig.displayFrequency = 60;
 
 #ifndef VITA
 	if (!window) {
