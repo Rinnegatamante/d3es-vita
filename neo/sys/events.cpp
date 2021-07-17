@@ -34,12 +34,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "framework/Common.h"
 #include "framework/KeyInput.h"
 #include "framework/Session.h"
+#include "framework/Session_local.h"
 #include "renderer/RenderSystem.h"
 #include "renderer/tr_local.h"
-
-#ifdef __ANDROID__
-#include "sound/snd_local.h"
-#endif
+#include "ui/DeviceContext.h"
+#include "ui/UserInterface.h"
 
 #include "sys/sys_public.h"
 
@@ -68,6 +67,7 @@ const char *kbdNames[] = {
 };
 
 idCVar in_kbd("in_kbd", "english", CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "keyboard layout", kbdNames, idCmdSystem::ArgCompletion_String<kbdNames> );
+extern idCVar r_scaleMenusTo43; // DG: for the "scale menus to 4:3" hack
 
 struct kbd_poll_t {
 	int key;
@@ -95,6 +95,23 @@ struct mouse_poll_t {
 	}
 };
 
+struct joystick_poll_t
+{
+	int axis;
+	int value;
+	
+	joystick_poll_t()
+	{
+	}
+	
+	joystick_poll_t( int a, int v )
+	{
+		axis = a;
+		value = v;
+	}
+};
+
+static idList<joystick_poll_t> joystick_polls;
 static idList<kbd_poll_t> kbd_polls;
 static idList<mouse_poll_t> mouse_polls;
 
@@ -280,6 +297,139 @@ static void PushConsoleEvent(const char *s) {
 	SDL_PushEvent(&event);
 }
 
+static inline byte JoyToKey(int button) {
+    static const int keymap[] = {
+		/* INVALID    */ K_AUX1,
+        /* KEY_A      */ K_ENTER,
+        /* KEY_B      */ K_BACKSPACE,
+        /* KEY_X      */ K_ALT,
+        /* KEY_Y      */ K_CTRL,
+        /* KEY_BACK   */ K_TAB,
+        /* KEY_GUIDE  */ K_JOY32,
+        /* KEY_START  */ K_SHIFT,
+        /* KEY_LSTICK */ K_AUX10,
+        /* KEY_RSTICK */ K_AUX2,
+        /* KEY_LSHOULD*/ K_MOUSE2,
+        /* KEY_RSHOULD*/ K_MOUSE1,
+        /* KEY_DLEFT  */ K_LEFTARROW,
+        /* KEY_DUP    */ K_UPARROW,
+        /* KEY_DRIGHT */ K_RIGHTARROW,
+        /* KEY_DDOWN  */ K_DOWNARROW,
+    };
+
+    if (button < 0 || button > 15) return 0;
+    return keymap[button];
+}
+
+static int joy_mouse[2] = { 0 };
+static int joy_mouse_prev[2] = { 0 };
+
+static float touch_pos[2] = { 0 };
+static float touch_pos_prev[2] = { 0 };
+static bool touch_pressed = false;
+static bool touch_pressed_prev = false;
+
+// all the menus are now 4:3, so we got a different origin
+// 960x720 is the 4:3 resolution we get
+
+static int touch_w = 1920;
+static int touch_h = 1088;
+static int menu_w = 960;
+static int menu_ox = (960 - 725) / 2;
+static SDL_GameController *controller = NULL;
+
+extern idSession *session;
+extern idSessionLocal sessLocal;
+
+static inline void JoyMouseMotion(Uint8 axis, Sint16 val) {
+	constexpr float mouse_modifier = 1.f / 2048.f;
+	constexpr int move_modifier = 256;
+	constexpr int deadzone = 32;
+
+	if (abs(val) < deadzone) val = 0;
+
+	joy_mouse_prev[axis] = joy_mouse[axis];
+	joy_mouse[axis] = val * mouse_modifier;
+}
+
+
+static inline bool JoyGenerateMouseEvents(void) {
+	SDL_Event ev = { 0 };
+
+	if (joy_mouse[0] || joy_mouse[1]) {
+		ev.type = SDL_MOUSEMOTION;
+		ev.motion.xrel = joy_mouse[0];
+		ev.motion.yrel = joy_mouse[1];
+		SDL_PeepEvents(&ev, 1, SDL_ADDEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
+		return true;
+	}
+
+	return false;
+}
+
+static inline void TouchMotion(float x, float y) {
+	// only update cursor position in menus
+	if (!session || !sessLocal.GetActiveMenu())
+		return;
+	touch_pos_prev[0] = touch_pos[0];
+	touch_pos_prev[1] = touch_pos[1];
+	touch_pos[0] = x * touch_w;
+	touch_pos[1] = y * touch_h;
+}
+
+static inline void TouchPress(bool pressed) {
+	touch_pressed_prev = touch_pressed;
+	touch_pressed = pressed;
+}
+
+static inline bool TouchGenerateEvents(void) {
+	// only update cursor position in menus
+	if (!session || !sessLocal.GetActiveMenu())
+		return false;
+
+	SDL_Event ev = { 0 };
+	bool ret = false;
+
+	if (touch_pos[0] != touch_pos_prev[0] || touch_pos[1] != touch_pos_prev[1]) {
+		// just set the current GUI's cursor
+		auto m = sessLocal.GetActiveMenu();
+		int mx = 0, my = 0;
+
+		// but wait, there's more!
+		// fullscreen UIs might be contained in a centered 4:3 window
+		// so we have to transform the position (taken from UserInterface.cpp)
+		if(r_scaleMenusTo43.GetBool())
+			mx = (touch_pos[0] - menu_ox) / (float)menu_w * VIRTUAL_WIDTH;
+		else
+			mx = touch_pos[0] / (float)touch_w * VIRTUAL_WIDTH;
+		my = touch_pos[1] / (float)touch_h * VIRTUAL_HEIGHT;
+
+		m->SetCursor(mx, my);
+
+		// prevent duplicate events until the next touch event
+		touch_pos_prev[0] = touch_pos[0];
+		touch_pos_prev[1] = touch_pos[1];
+		ret = true;
+	}
+
+	if (touch_pressed != touch_pressed_prev) {
+		ev.type = touch_pressed ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+		ev.button.timestamp = Sys_Milliseconds();
+		ev.button.which = SDL_TOUCH_MOUSEID;
+		ev.button.button = SDL_BUTTON_LEFT;
+		ev.button.state = touch_pressed ? SDL_PRESSED : SDL_RELEASED;
+		ev.button.clicks = 1;
+		ev.button.x = touch_pos[0];
+		ev.button.y = touch_pos[1];
+		SDL_PeepEvents(&ev, 1, SDL_ADDEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
+		ret = true;
+		// prevent duplicate events until the next touch event
+		touch_pressed_prev = touch_pressed;
+	}
+
+	return ret;
+}
+
 /*
 =================
 Sys_InitInput
@@ -288,11 +438,25 @@ Sys_InitInput
 void Sys_InitInput() {
 	kbd_polls.SetGranularity(64);
 	mouse_polls.SetGranularity(64);
+	joystick_polls.SetGranularity(64);
 
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-	SDL_EnableUNICODE(1);
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-#endif
+	SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
+
+	//SDL_JoystickOpen(0);
+
+	int numjoysticks = SDL_NumJoysticks();
+	for (int i = 0; i < numjoysticks; i++) {
+		if (SDL_IsGameController(i)) {
+			if (!controller) {
+				controller = SDL_GameControllerOpen(i);
+			}
+		}
+	}
+	
+	touch_w = glConfig.vidWidth;
+	touch_h = glConfig.vidHeight;
+	menu_w = (int)((double)touch_h / 3.0 * 4.0);
+	menu_ox = (touch_w - menu_w) / 2;
 
 	in_kbd.SetModified();
 }
@@ -305,6 +469,9 @@ Sys_ShutdownInput
 void Sys_ShutdownInput() {
 	kbd_polls.Clear();
 	mouse_polls.Clear();
+	joystick_polls.Clear();
+	if (SDL_WasInit(SDL_INIT_JOYSTICK))
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
 }
 
 /*
@@ -384,9 +551,7 @@ void Sys_GrabMouseCursor(bool grabIt) {
 
 	GLimp_GrabInput(flags);
 }
-#ifdef __ANDROID__
-extern idSoundSystemLocal	soundSystemLocal;
-#endif
+
 /*
 ================
 Sys_GetEvent
@@ -399,7 +564,6 @@ sysEvent_t Sys_GetEvent() {
 
 	static const sysEvent_t res_none = { SE_NONE, 0, 0, 0, NULL };
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	static char s[SDL_TEXTINPUTEVENT_TEXT_SIZE] = {0};
 	static size_t s_pos = 0;
 
@@ -416,7 +580,6 @@ sysEvent_t Sys_GetEvent() {
 
 		return res;
 	}
-#endif
 
 	static byte c = 0;
 
@@ -432,7 +595,6 @@ sysEvent_t Sys_GetEvent() {
 	// loop until there is an event we care about (will return then) or no more events
 	while(SDL_PollEvent(&ev)) {
 		switch (ev.type) {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 		case SDL_WINDOWEVENT:
 			switch (ev.window.event) {
 				case SDL_WINDOWEVENT_FOCUS_GAINED: {
@@ -447,53 +609,14 @@ sysEvent_t Sys_GetEvent() {
 						SDL_SetModState((SDL_Keymod)newmod);
 					} // new context because visual studio complains about newmod and currentmod not initialized because of the case SDL_WINDOWEVENT_FOCUS_LOST
 
-					GLimp_WindowActive(true);
-
-					common->ActivateTool( false );
-					GLimp_GrabInput(GRAB_ENABLE | GRAB_REENABLE | GRAB_HIDECURSOR); // FIXME: not sure this is still needed after the ActivateTool()-call
-
-					// start playing the game sound world again (when coming from editor)
-					session->SetPlayingSoundWorld();
-#ifdef __ANDROID__
-					soundSystemLocal.Pause( false );
-#endif
+					GLimp_GrabInput(GRAB_ENABLE | GRAB_REENABLE | GRAB_HIDECURSOR);
 					break;
 				case SDL_WINDOWEVENT_FOCUS_LOST:
 					GLimp_GrabInput(0);
-					GLimp_WindowActive(false);
-#ifdef __ANDROID__
-					soundSystemLocal.Pause( true );
-#endif
 					break;
 			}
 
 			continue; // handle next event
-#else
-		case SDL_ACTIVEEVENT:
-			{
-				int flags = 0;
-
-				if (ev.active.gain) {
-					flags = GRAB_ENABLE | GRAB_REENABLE | GRAB_HIDECURSOR;
-
-					// unset modifier, in case alt-tab was used to leave window and ALT is still set
-					// as that can cause fullscreen-toggling when pressing enter...
-					SDLMod currentmod = SDL_GetModState();
-					int newmod = KMOD_NONE;
-					if (currentmod & KMOD_CAPS) // preserve capslock
-						newmod |= KMOD_CAPS;
-
-					SDL_SetModState((SDLMod)newmod);
-				}
-
-				GLimp_GrabInput(flags);
-			}
-
-			continue; // handle next event
-
-		case SDL_VIDEOEXPOSE:
-			continue; // handle next event
-#endif
 
 		case SDL_KEYDOWN:
 			if (ev.key.keysym.sym == SDLK_RETURN && (ev.key.keysym.mod & KMOD_ALT) > 0) {
@@ -504,22 +627,6 @@ sysEvent_t Sys_GetEvent() {
 
 			// fall through
 		case SDL_KEYUP:
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-			key = mapkey(ev.key.keysym.sym);
-			if (!key) {
-				unsigned char c;
-				// check if its an unmapped console key
-				if (ev.key.keysym.unicode == (c = Sys_GetConsoleKey(false))) {
-					key = c;
-				} else if (ev.key.keysym.unicode == (c = Sys_GetConsoleKey(true))) {
-					key = c;
-				} else {
-					if (ev.type == SDL_KEYDOWN)
-						common->Warning("unmapped SDL key %d (0x%x)", ev.key.keysym.sym, ev.key.keysym.unicode);
-					continue; // handle next event
-				}
-			}
-#else
 		{
 			// workaround for AZERTY-keyboards, which don't have 1, 2, ..., 9, 0 in first row:
 			// always map those physical keys (scancodes) to those keycodes anyway
@@ -552,7 +659,6 @@ sysEvent_t Sys_GetEvent() {
 				}
 			}
 		}
-#endif
 
 			res.evType = SE_KEY;
 			res.evValue = key;
@@ -560,17 +666,40 @@ sysEvent_t Sys_GetEvent() {
 
 			kbd_polls.Append(kbd_poll_t(key, ev.key.state == SDL_PRESSED));
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 			if (key == K_BACKSPACE && ev.key.state == SDL_PRESSED)
 				c = key;
-#else
-			if (ev.key.state == SDL_PRESSED && (ev.key.keysym.unicode & 0xff00) == 0)
-				c = ev.key.keysym.unicode & 0xff;
-#endif
 
 			return res;
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+		case SDL_CONTROLLERAXISMOTION:
+			if (ev.jaxis.axis == 0 || ev.jaxis.axis == 1)
+			{
+				// only send left stick motion to the event system, cause
+				// right stick emulates mouse
+				res.evType = SE_JOYSTICK_AXIS;
+				res.evValue = ev.caxis.axis;
+				res.evValue2 = ev.caxis.value / 256;
+				joystick_polls.Append(joystick_poll_t(res.evValue, res.evValue2));
+				return res;
+			}
+			else if (ev.caxis.axis == 2 || ev.caxis.axis == 3)
+			{
+				JoyMouseMotion(ev.caxis.axis - 2, ev.caxis.value);
+				continue;
+			}
+
+		case SDL_CONTROLLERBUTTONDOWN:
+		case SDL_CONTROLLERBUTTONUP:
+			key = JoyToKey(ev.cbutton.button);
+			if (!key) continue;
+			res.evType = SE_KEY;
+			res.evValue = key;
+			res.evValue2 = ev.type == SDL_CONTROLLERBUTTONDOWN ? 1 : 0;
+			kbd_polls.Append(kbd_poll_t(key, ev.type == SDL_CONTROLLERBUTTONDOWN));
+			if (key == K_BACKSPACE && ev.type == SDL_CONTROLLERBUTTONDOWN)
+				c = key;
+			return res;
+
 		case SDL_TEXTINPUT:
 			if (ev.text.text[0]) {
 				res.evType = SE_CHAR;
@@ -589,7 +718,16 @@ sysEvent_t Sys_GetEvent() {
 		case SDL_TEXTEDITING:
 			// on windows we get this event whenever the window gains focus.. just ignore it.
 			continue;
-#endif
+
+		case SDL_FINGERDOWN:
+		case SDL_FINGERUP:
+			// TODO: maybe just do the same shit as in a MOUSEBUTTONDOWN event, but
+			// with K_MOUSE1 only?
+			TouchPress(ev.type == SDL_FINGERDOWN);
+		// fallthrough
+		case SDL_FINGERMOTION:
+			TouchMotion(ev.tfinger.x, ev.tfinger.y);
+			continue;
 
 		case SDL_MOUSEMOTION:
 			res.evType = SE_MOUSE;
@@ -601,7 +739,6 @@ sysEvent_t Sys_GetEvent() {
 
 			return res;
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 		case SDL_MOUSEWHEEL:
 			res.evType = SE_KEY;
 
@@ -616,7 +753,6 @@ sysEvent_t Sys_GetEvent() {
 			res.evValue2 = 1;
 
 			return res;
-#endif
 
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
@@ -635,21 +771,7 @@ sysEvent_t Sys_GetEvent() {
 				res.evValue = K_MOUSE2;
 				mouse_polls.Append(mouse_poll_t(M_ACTION2, ev.button.state == SDL_PRESSED ? 1 : 0));
 				break;
-
-#if !SDL_VERSION_ATLEAST(2, 0, 0)
-			case SDL_BUTTON_WHEELUP:
-				res.evValue = K_MWHEELUP;
-				if (ev.button.state == SDL_PRESSED)
-					mouse_polls.Append(mouse_poll_t(M_DELTAZ, 1));
-				break;
-			case SDL_BUTTON_WHEELDOWN:
-				res.evValue = K_MWHEELDOWN;
-				if (ev.button.state == SDL_PRESSED)
-					mouse_polls.Append(mouse_poll_t(M_DELTAZ, -1));
-				break;
-#endif
 			default:
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 				// handle X1 button and above
 				if( ev.button.button < SDL_BUTTON_LEFT + 8 ) // doesn't support more than 8 mouse buttons
 				{
@@ -658,7 +780,6 @@ sysEvent_t Sys_GetEvent() {
 					mouse_polls.Append( mouse_poll_t( M_ACTION1 + buttonIndex, ev.button.state == SDL_PRESSED ? 1 : 0 ) );
 				}
 				else
-#endif
 				continue; // handle next event
 			}
 
@@ -704,9 +825,9 @@ void Sys_ClearEvents() {
 
 	kbd_polls.SetNum(0, false);
 	mouse_polls.SetNum(0, false);
+	joystick_polls.SetNum(0, false);
 }
 
-extern "C" 	const char * Android_GetCommand();
 /*
 ================
 Sys_GenerateEvents
@@ -718,13 +839,8 @@ void Sys_GenerateEvents() {
 	if (s)
 		PushConsoleEvent(s);
 
-	/*const char * cmd = Android_GetCommand();
-	if(cmd)
-	{
-		cmdSystem->BufferCommandText( CMD_EXEC_NOW, cmd );
-		//cmdSystem->BufferCommandText( CMD_EXEC_NOW, "\n" );
-	}*/
-
+	JoyGenerateMouseEvents();
+	TouchGenerateEvents();
 
 	SDL_PumpEvents();
 }
@@ -759,6 +875,38 @@ Sys_EndKeyboardInputEvents
 */
 void Sys_EndKeyboardInputEvents() {
 	kbd_polls.SetNum(0, false);
+}
+
+/*
+================
+Sys_PollJoystickInputEvents
+================
+*/
+int Sys_PollJoystickInputEvents() {
+	return joystick_polls.Num();
+}
+
+/*
+================
+Sys_ReturnJoystickInputEvent
+================
+*/
+int Sys_ReturnJoystickInputEvent(const int n, int &axis, int &value) {
+	if (n >= joystick_polls.Num())
+		return 0;
+
+	axis = joystick_polls[n].axis;
+	value = joystick_polls[n].value;
+	return 1;
+}
+
+/*
+================
+Sys_EndJoystickInputEvents
+================
+*/
+void Sys_EndJoystickInputEvents() {
+	joystick_polls.SetNum(0, false);
 }
 
 /*
