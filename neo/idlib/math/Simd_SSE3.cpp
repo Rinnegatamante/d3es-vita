@@ -49,7 +49,7 @@ const char * idSIMD_SSE3::GetName( void ) const {
 
 #elif defined(_MSC_VER) && defined(_M_IX86)
 
-#include <xmmintrin.h>
+#include "sys/sse2neon.h"
 
 #include "idlib/geometry/JointTransform.h"
 #include "idlib/geometry/DrawVert.h"

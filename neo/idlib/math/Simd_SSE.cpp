@@ -46,8 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 #define DRAWVERT_COLOR_OFFSET		(14*4)
 
 #if defined(__GNUC__) && defined(__SSE__)
-
-#include <xmmintrin.h>
+#include "sys/sse2neon.h"
 
 #define SHUFFLEPS( x, y, z, w )		(( (x) & 3 ) << 6 | ( (y) & 3 ) << 4 | ( (z) & 3 ) << 2 | ( (w) & 3 ))
 #define R_SHUFFLEPS( x, y, z, w )	(( (w) & 3 ) << 6 | ( (z) & 3 ) << 4 | ( (y) & 3 ) << 2 | ( (x) & 3 ))
@@ -619,7 +618,7 @@ void VPCALL idSIMD_SSE::Dot( float *dst, const idVec3 &constant, const idPlane *
 
 #elif defined(_MSC_VER) && defined(_M_IX86)
 
-#include <xmmintrin.h>
+#include "sys/sse2neon.h"
 
 #include "idlib/geometry/JointTransform.h"
 #include "idlib/math/Vector.h"

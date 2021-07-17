@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #if defined(__GNUC__) && defined(__SSE2__)
-#include <xmmintrin.h>
+#include "sys/sse2neon.h"
 #endif
 
 #include "sys/platform.h"

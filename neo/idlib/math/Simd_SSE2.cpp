@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 //===============================================================
 #if defined(__GNUC__) && defined(__SSE2__)
 
-#include <emmintrin.h>
+#include "sys/sse2neon.h"
 
 #define SHUFFLEPS( x, y, z, w )		(( (x) & 3 ) << 6 | ( (y) & 3 ) << 4 | ( (z) & 3 ) << 2 | ( (w) & 3 ))
 #define R_SHUFFLEPS( x, y, z, w )	(( (w) & 3 ) << 6 | ( (z) & 3 ) << 4 | ( (y) & 3 ) << 2 | ( (x) & 3 ))
@@ -241,7 +241,7 @@ void VPCALL idSIMD_SSE2::CmpLT( byte *dst, const byte bitNum, const float *src0,
 
 #elif defined(_MSC_VER) && defined(_M_IX86)
 
-#include <xmmintrin.h>
+#include "sys/sse2neon.h"
 
 #include "idlib/geometry/JointTransform.h"
 #include "idlib/math/Math.h"

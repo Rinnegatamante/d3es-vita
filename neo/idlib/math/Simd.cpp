@@ -52,6 +52,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/math/Simd.h"
 
+#include <vitasdk.h>
+
 idSIMDProcessor	*	processor = NULL;			// pointer to SIMD processor
 idSIMDProcessor *	generic = NULL;				// pointer to generic SIMD implementation
 idSIMDProcessor *	SIMDProcessor = NULL;

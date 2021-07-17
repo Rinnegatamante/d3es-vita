@@ -197,25 +197,32 @@ Sys_GetProcessorId
 */
 int Sys_GetProcessorId( void ) {
 	int flags = CPUID_GENERIC;
-
+#ifndef VITA
 	if (SDL_HasMMX())
+#endif
 		flags |= CPUID_MMX;
 
 	if (SDL_Has3DNow())
 		flags |= CPUID_3DNOW;
 
+#ifndef VITA
 	if (SDL_HasSSE())
+#endif
 		flags |= CPUID_SSE;
-
+#ifndef VITA
 	if (SDL_HasSSE2())
+#endif
 		flags |= CPUID_SSE2;
 
+#ifdef VITA
+	flags |= CPUID_SSE3;
+#else
 #ifndef NO_CPUID
 	// there is no SDL_HasSSE3() in SDL 1.2
 	if (HasSSE3())
 		flags |= CPUID_SSE3;
 #endif
-
+#endif
 	if (SDL_HasAltiVec())
 		flags |= CPUID_ALTIVEC;
 
