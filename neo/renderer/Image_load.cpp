@@ -421,7 +421,7 @@ void myglTexImage2D(char* cachefname,GLenum target, GLint level, GLint internalf
 			LOGI("Loaded cached image from %s", cachefname);
 		}
 	} else {
-		qglTexImage2D(target,level,internalformat,width,height,border,format,type,pixels);
+		qglTexImage2D(target,level,format == GL_RGBA ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT : GL_COMPRESSED_RGB_S3TC_DXT1_EXT,width,height,border,format,type,pixels);
 	}
 }
 
@@ -618,7 +618,7 @@ void idImage::GenerateImage( const byte *pic, int width, int height,
 	} else
 		fptr=0;
 	myglTexImage2D(fptr,GL_TEXTURE_2D, 0, internalFormat, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledBuffer);
-
+#ifndef VITA
 	// create and upload the mip map levels, which we do in all cases, even if we don't think they are needed
 	int		miplevel;
 
@@ -663,7 +663,7 @@ void idImage::GenerateImage( const byte *pic, int width, int height,
 		myglTexImage2D(fptr,GL_TEXTURE_2D, miplevel, internalFormat, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaledBuffer);
 
 	}
-
+#endif
 	if ( scaledBuffer != 0 ) {
 		R_StaticFree( scaledBuffer );
 	}
