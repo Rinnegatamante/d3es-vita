@@ -298,10 +298,10 @@ OBJS     := $(GAMEOBJS) $(FRAMEWORKOBJS) $(SYSOBJS) $(RENDEREROBJS) $(MISCOBJS) 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
 CXX      = $(PREFIX)-g++
-CFLAGS  = -fsigned-char -Wl,-q,--wrap,fopen,--wrap,opendir,--wrap,open,--wrap,access \
-	-O3 -g -fno-optimize-sibling-calls -DNODLL -DNOEFX -D__unix__ \
-	-ffast-math -mtune=cortex-a9 -mfpu=neon -DVITA -I. -Igame \
-	-I$(VITASDK)/$(PREFIX)/include/SDL2
+CFLAGS  = -fsigned-char -Wl,-q,--wrap,fopen,--wrap,opendir,--wrap,open,--wrap,access,--wrap,memcpy,--wrap,memset \
+	-O3 -g -fno-optimize-sibling-calls -DNODLL -DNOEFX -D__unix__ -DSDL_DISABLE_XMMINTRIN_H \
+	-ffast-math -mtune=cortex-a9 -mfpu=neon -DVITA -I. -Igame -D__SSE__  -D__SSE2__ -D__SSE3__ \
+	-I$(VITASDK)/$(PREFIX)/include/SDL2 -DSDL_DISABLE_EMMINTRIN_H -DSDL_DISABLE_PMMINTRIN_H
 CXXFLAGS  = $(CFLAGS) -std=gnu++11 -fpermissive
 ASFLAGS = $(CFLAGS)
 

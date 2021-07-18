@@ -88,6 +88,14 @@ extern "C" DIR *__wrap_opendir(const char *fname) {
 	return __real_opendir(patch_fname(fname));
 }
 
+extern "C" void *__wrap_memcpy(void *destination, const void *source, size_t num) {
+	return sceClibMemcpy(destination, source, num);
+}
+
+extern "C" void *__wrap_memset(void *ptr, int value, size_t num) {
+	return sceClibMemset(ptr, value, num);
+}
+
 #ifdef __ANDROID__
 #include "LogWritter.h"
 #endif
