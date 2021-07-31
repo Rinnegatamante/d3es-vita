@@ -6,7 +6,7 @@ LIBS = -lopenal -lpthread -lvitaGL -lvitashark -lmathneon -lvorbisfile -lvorbis 
 	-lSceNet_stub -lSceNetCtl_stub -lpng -lSceDisplay_stub -lSceGxm_stub -lSceHid_stub \
 	-lSceSysmodule_stub -lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub -lm -lSceAppMgr_stub \
 	-lSceAppUtil_stub -lScePgf_stub -ljpeg -lSceRtc_stub -lScePower_stub -lcurl -lssl -lcrypto \
-	-lSceAudioIn_stub
+	-lSceAudioIn_stub -lSceKernelDmacMgr_stub
 
 MISCOBJS = \
 	cm/CollisionModel_contacts.o \

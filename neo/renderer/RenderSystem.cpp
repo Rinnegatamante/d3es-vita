@@ -131,6 +131,7 @@ R_IssueRenderCommands
 Called by R_EndFrame each frame
 ====================
 */
+int frameskip = 0;
 static void R_IssueRenderCommands( volatile frameData_t *fd ) {
 	if ( fd->cmdHead->commandId == RC_NOP
 	        && !fd->cmdHead->next ) {
@@ -146,9 +147,11 @@ static void R_IssueRenderCommands( volatile frameData_t *fd ) {
 
 	// r_skipRender is usually more usefull, because it will still
 	// draw 2D graphics
-	if ( !r_skipBackEnd.GetBool() ) {
+	if ( !r_skipBackEnd.GetBool() && frameskip) {
 		RB_ExecuteBackEndCommands( fd->cmdHead );
 	}
+	
+	frameskip = !frameskip;
 }
 
 /*
