@@ -3,10 +3,10 @@ TITLE		:= DHEWM3ES2
 
 LIBS = -lopenal -lpthread -lvitaGL -lvitashark -lmathneon -lvorbisfile -lvorbis -logg  -lspeexdsp -lmpg123 \
 	-lSDL2 -lc -lSceCommonDialog_stub -lSceAudio_stub -lSceLibKernel_stub -lSceShaccCg_stub -lz \
-	-lSceNet_stub -lSceNetCtl_stub -lpng -lSceDisplay_stub -lSceGxm_stub -lSceHid_stub \
+	-lSceShaccCgExt -ltaihen_stub -lSceNet_stub -lSceNetCtl_stub -lpng -lSceDisplay_stub -lSceGxm_stub \
 	-lSceSysmodule_stub -lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub -lm -lSceAppMgr_stub \
 	-lSceAppUtil_stub -lScePgf_stub -ljpeg -lSceRtc_stub -lScePower_stub -lcurl -lssl -lcrypto \
-	-lSceAudioIn_stub
+	-lSceAudioIn_stub -lSceKernelDmacMgr_stub -lSceIme_stub -lSceHid_stub
 
 MISCOBJS = \
 	cm/CollisionModel_contacts.o \
@@ -298,10 +298,11 @@ OBJS     := $(GAMEOBJS) $(FRAMEWORKOBJS) $(SYSOBJS) $(RENDEREROBJS) $(MISCOBJS) 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
 CXX      = $(PREFIX)-g++
-CFLAGS  = -fsigned-char -Wl,-q,--wrap,fopen,--wrap,opendir,--wrap,open,--wrap,access,--wrap,memcpy,--wrap,memset \
+CFLAGS  = -fsigned-char -Wl,-q,--wrap,fopen,--wrap,opendir,--wrap,open,--wrap,access,--wrap,memcpy,--wrap,memset,--wrap,malloc,--wrap,memalign,--wrap,free,--wrap,calloc,--wrap,realloc \
 	-O3 -g -fno-optimize-sibling-calls -DNODLL -DNOEFX -D__unix__ -DSDL_DISABLE_XMMINTRIN_H \
 	-ffast-math -mtune=cortex-a9 -mfpu=neon -DVITA -I. -Igame -D__SSE__  -D__SSE2__ -D__SSE3__ \
-	-I$(VITASDK)/$(PREFIX)/include/SDL2 -DSDL_DISABLE_EMMINTRIN_H -DSDL_DISABLE_PMMINTRIN_H
+	-I$(VITASDK)/$(PREFIX)/include/SDL2 -DSDL_DISABLE_EMMINTRIN_H -DSDL_DISABLE_PMMINTRIN_H 
+	#-DNO_LIGHT
 CXXFLAGS  = $(CFLAGS) -std=gnu++11 -fpermissive
 ASFLAGS = $(CFLAGS)
 

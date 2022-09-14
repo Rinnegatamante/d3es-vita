@@ -35,7 +35,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/time.h>
 #include <pwd.h>
 #include <dlfcn.h>
+#ifndef __vita__
 #include <termios.h>
+#endif
 #include <signal.h>
 #include <fcntl.h>
 #include <vitasdk.h>

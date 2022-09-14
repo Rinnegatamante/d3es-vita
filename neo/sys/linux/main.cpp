@@ -46,7 +46,17 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <locale.h>
 
+#include <vitasdk.h>
+#include <vitaGL.h>
 int _newlib_heap_size_user = 256 * 1024 * 1024;
+
+extern "C"{
+void *__wrap_calloc(uint32_t nmember, uint32_t size) { return vglCalloc(nmember, size); }
+void __wrap_free(void *addr) { vglFree(addr); };
+void *__wrap_malloc(uint32_t size) { return vglMalloc(size); };
+void *__wrap_memalign(uint32_t alignment, uint32_t size) { return vglMemalign(alignment, size); };
+void *__wrap_realloc(void *ptr, uint32_t size) { return vglRealloc(ptr, size); };
+};
 
 static char path_argv[MAX_OSPATH];
 
