@@ -40,9 +40,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef VITA
 #include <vitasdk.h>
-extern "C" void vglUseVram(GLboolean use);
 extern "C" void vglSwapBuffers(GLboolean has_commondialog);
-extern "C" void vglInitExtended(int legacy_pool_size, int width, int height, int ram_threshold, SceGxmMultisampleMode msaa);
+extern "C" GLboolean vglInitWithCustomThreshold(int pool_size, int width, int height, int ram_threshold, int cdram_threshold, int phycont_threshold, int cdlg_threshold, SceGxmMultisampleMode msaa);
 extern "C" void *vglGetProcAddress(const char *name);
 #endif
 
@@ -174,8 +173,7 @@ bool GLimp_Init(glimpParms_t parms) {
 	glConfig.vidWidthReal = 960;
 	glConfig.vidHeightReal = 544;
 	glConfig.isFullscreen = true;
-	vglUseVram(GL_TRUE);
-	vglInitExtended(0, glConfig.vidWidthReal, glConfig.vidHeightReal, 10 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+	vglInitWithCustomThreshold(0, glConfig.vidWidthReal, glConfig.vidHeightReal, 10 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
 #endif
 	
 	//common->Printf("Using %d color bits, %d depth, %d stencil display\n",
