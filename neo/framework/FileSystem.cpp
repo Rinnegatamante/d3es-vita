@@ -3021,7 +3021,9 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 			netpath = BuildOSPath( dir->path, dir->gamedir, relativePath );
 			fp = OpenOSFileCorrectName( netpath, "rb" );
 			if ( !fp ) {
-				continue;
+				fp = fopen(relativePath, "rb");
+				if ( !fp )
+					continue;
 			}
 
 			idFile_Permanent *file = new idFile_Permanent();
@@ -3214,8 +3216,11 @@ idFile *idFileSystemLocal::OpenFileWrite( const char *relativePath, const char *
 	f = new idFile_Permanent();
 	f->o = OpenOSFile( OSpath, "wb" );
 	if ( !f->o ) {
-		delete f;
-		return NULL;
+		f->o = fopen(relativePath, "wb");
+		if ( !f->o ) {
+			delete f;
+			return NULL;
+		}
 	}
 	f->name = relativePath;
 	f->fullPath = OSpath;

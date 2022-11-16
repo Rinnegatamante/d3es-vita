@@ -390,23 +390,23 @@ int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat,
 		}
 	}
 
-	tmp--;
 	fileSystem->FreeFile(tmp);
 	return failed;
 }
 
-void myglTexImage2D(char* cachefname,GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels) {
+void myglTexImage2D(char* _cachefname,GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels) {
 	static int opaque = 0;
 
 	// LOGI("myglTexImage2D, name = %s", cachefname );
-
+	char cachefname[256] = {};
+	
 	if (r_useETC1.GetBool() && format == GL_RGBA && type == GL_UNSIGNED_BYTE) {
 
 		if (level == 0)
 			opaque = isopaque(width, height, pixels);
 
-		if (!r_useETC1Cache.GetBool())
-			cachefname=0;
+		if (r_useETC1Cache.GetBool())
+			sprintf(cachefname, "ux0:data/dhewm3/base/%s", _cachefname);
 
 		if( uploadetc(cachefname, target, level, internalformat, width, height, border, format, type ) != 0 )
 		{
@@ -418,10 +418,14 @@ void myglTexImage2D(char* cachefname,GLenum target, GLint level, GLint internalf
 		}
 		else
 		{
-			LOGI("Loaded cached image from %s", cachefname);
+			// LOGI("Loaded cached image from %s", cachefname);
 		}
 	} else {
+#if 0 // Force texture compression
 		qglTexImage2D(target,level,format == GL_RGBA ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT : GL_COMPRESSED_RGB_S3TC_DXT1_EXT,width,height,border,format,type,pixels);
+#else
+		qglTexImage2D(target,level,format,width,height,border,format,type,pixels);
+#endif
 	}
 }
 
@@ -861,7 +865,7 @@ void	idImage::ActuallyLoadImage( bool fromBind ) {
 
 	if(fromBind)
 	{
-		LOGI("ERROR!! CAN NOT LOAD IMAGE FROM BIND");
+		// LOGI("ERROR!! CAN NOT LOAD IMAGE FROM BIND\n");
 		globalImages->AddAllocList( this );
 		return;
 	}
