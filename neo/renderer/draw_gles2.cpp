@@ -260,7 +260,7 @@ static void RB_GLSL_GetUniformLocations(shaderProgram_t* shader) {
 	shader->attr_Normal = qglGetAttribLocation(shader->program, "attr_Normal");
 	shader->attr_Vertex = qglGetAttribLocation(shader->program, "attr_Vertex");
 	shader->attr_Color = qglGetAttribLocation(shader->program, "attr_Color");
-#ifndef VITA
+
 	// Init default values
 	for ( i = 0; i < MAX_FRAGMENT_IMAGES; i++ ) {
 		idStr::snPrintf(buffer, sizeof(buffer), "u_fragmentMap%d", i);
@@ -273,7 +273,7 @@ static void RB_GLSL_GetUniformLocations(shaderProgram_t* shader) {
 		shader->u_fragmentCubeMap[i] = qglGetUniformLocation(shader->program, buffer);
 		qglUniform1i(shader->u_fragmentCubeMap[i], i);
 	}
-#endif
+
 	if (shader->textureMatrix >= 0) {
 		// Load identity matrix for Texture marix
 		GL_UniformMatrix4fv(offsetof(shaderProgram_t, textureMatrix), mat4_identity.ToFloatPtr());
@@ -874,7 +874,7 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 	}
 
 	// depth-fail stencil shadows
-	/*if ( !external ) {
+	if ( !external ) {
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_DECR, GL_KEEP);
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_INCR, GL_KEEP);
 	} else {
@@ -882,10 +882,10 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_KEEP, GL_INCR);
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR);
 	}
-	RB_DrawShadowElementsWithCounters(surf, numIndexes);*/
+	RB_DrawShadowElementsWithCounters(surf, numIndexes);
 
 	// patent-free work around
-	if (!external) {
+	/*if (!external) {
 	  // "preload" the stencil buffer with the number of volumes
 	  // that get clipped by the near or far clip plane
 	  qglStencilOp(GL_KEEP, GL_DECR, GL_DECR);
@@ -903,7 +903,7 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 
 	qglStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
 	GL_Cull(CT_BACK_SIDED);
-	RB_DrawShadowElementsWithCounters(surf, numIndexes);
+	RB_DrawShadowElementsWithCounters(surf, numIndexes);*/
 }
 
 
