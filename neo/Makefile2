@@ -1,4 +1,4 @@
-TARGET		:= dhewm3
+TARGET		:= no_lights
 TITLE		:= DHEWM3ES2
 
 LIBS = -lopenal -lpthread -lvitaGL -lvitashark -lmathneon -lvorbisfile -lvorbis -logg  -lspeexdsp -lmpg123 \
@@ -301,29 +301,15 @@ CXX      = $(PREFIX)-g++
 CFLAGS  = -fsigned-char -Wl,-q,--wrap,fopen,--wrap,opendir,--wrap,open,--wrap,access,--wrap,memcpy,--wrap,memset,--wrap,malloc,--wrap,memalign,--wrap,free,--wrap,calloc,--wrap,realloc \
 	-O3 -g -fno-optimize-sibling-calls -DNODLL -DNOEFX -D__unix__ -DSDL_DISABLE_XMMINTRIN_H \
 	-ffast-math -mtune=cortex-a9 -mfpu=neon -DVITA -I. -Igame -D__SSE__  -D__SSE2__ -D__SSE3__ \
-	-I$(VITASDK)/$(PREFIX)/include/SDL2 -DSDL_DISABLE_EMMINTRIN_H -DSDL_DISABLE_PMMINTRIN_H 
-	#-DNO_LIGHT
+	-I$(VITASDK)/$(PREFIX)/include/SDL2 -DSDL_DISABLE_EMMINTRIN_H -DSDL_DISABLE_PMMINTRIN_H \
+	-DNO_LIGHT
 CXXFLAGS  = $(CFLAGS) -std=gnu++11 -fpermissive
 ASFLAGS = $(CFLAGS)
 
-release:
-	make clean
-	make -f Makefile2 -j14
-	make clean
-	make all -j14
-
-all: $(TARGET).vpk
-
-$(TARGET).vpk: $(TARGET).velf
-	vita-make-fself -c -s $< build/eboot.bin
-	vita-mksfoex -s TITLE_ID=$(TITLE) -d ATTRIBUTE2=12 "Doom 3" param.sfo
-	vita-pack-vpk -s param.sfo -b build/eboot.bin \
-		--add livearea/icon0.png=sce_sys/icon0.png \
-		--add livearea/bg.png=sce_sys/livearea/contents/bg.png \
-		--add livearea/startup.png=sce_sys/livearea/contents/startup.png \
-		--add livearea/template.xml=sce_sys/livearea/contents/template.xml \
-		--add build/no_lights.bin=no_lights.bin \
-		$(TARGET).vpk
+all: $(TARGET).bin
+	
+$(TARGET).bin: $(TARGET).velf
+	vita-make-fself -c -s $< build/$(TARGET).bin
 
 %.velf: %.elf
 	cp $< $<.unstripped.elf

@@ -353,7 +353,24 @@ int main_android(int argc, char **argv, int gameMod_) {
 int main(int argc, char **argv) {
 #endif
 
+#ifdef NO_LIGHT
+	printf("Launching with no lights\n");
+#endif
+
 #ifdef VITA
+	// Check if we want to start the game without lights
+	sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
+	SceAppUtilAppEventParam eventParam;
+	sceClibMemset(&eventParam, 0, sizeof(SceAppUtilAppEventParam));
+	sceAppUtilReceiveAppEvent(&eventParam);
+	if (eventParam.type == 0x05) {
+		char buffer[2048];
+		sceAppUtilAppEventParseLiveArea(&eventParam, buffer);
+		printf("launching with %s\n", buffer);
+		if (strstr(buffer, "custom"))
+			sceAppMgrLoadExec("app0:/no_lights.bin", NULL, NULL);
+	}
+	
 	// Setting maximum clocks
 	scePowerSetArmClockFrequency(444);
 	scePowerSetBusClockFrequency(222);

@@ -1668,13 +1668,11 @@ void RB_GLSL_T_RenderShaderPasses(const drawSurf_t* surf, const float mvp[16]) {
 	// Skip cases
 	//////////////
 
-#ifdef NO_LIGHT
-	if ( !r_noLight.GetBool() )
-#endif
+#ifndef NO_LIGHT
 	if ( !shader->HasAmbient()) {
 		return;
 	}
-
+#endif
 	if ( shader->IsPortalSky()) {
 		return;
 	}
@@ -1965,7 +1963,6 @@ void RB_GLSL_T_RenderShaderPasses(const drawSurf_t* surf, const float mvp[16]) {
 			}
 
 #ifdef NO_LIGHT
-			if (r_noLight.GetBool() )
 			{
 				if (pStage->drawStateBits!=9000)
 	                GL_State(pStage->drawStateBits);
