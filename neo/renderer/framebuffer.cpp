@@ -133,7 +133,7 @@ static void createShaders (void)
    // get attrib locations
 	m_positionLoc = qglGetAttribLocation(r_program, "a_position");
 	m_texCoordLoc = qglGetAttribLocation(r_program, "a_texCoord");
-	//m_samplerLoc  = qglGetUniformLocation(r_program, "s_texture");
+	m_samplerLoc  = qglGetUniformLocation(r_program, "s_texture");
 
 	if(m_positionLoc == -1)
 		LOG("Failed to get m_positionLoc");
@@ -141,10 +141,10 @@ static void createShaders (void)
 	if(m_texCoordLoc == -1)
 		LOG("Failed to get m_texCoordLoc");
 
-	//if(m_samplerLoc == -1)
-	//	LOG("Failed to get m_samplerLoc");
+	if(m_samplerLoc == -1)
+		LOG("Failed to get m_samplerLoc");
 
-	//qglUniform1i(m_samplerLoc, 0);
+	qglUniform1i(m_samplerLoc, 0);
 }
 
 
@@ -297,7 +297,7 @@ void R_FrameBufferEnd()
 
 
 	// Set the sampler texture unit to 0
-	//qglUniform1i(m_samplerLoc, 0);
+	qglUniform1i(m_samplerLoc, 0);
 
 	qglViewport (0, 0, glConfig.vidWidthReal, glConfig.vidHeightReal );
 
