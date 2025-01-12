@@ -445,6 +445,10 @@ void Sys_InitInput() {
 
 	SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
 
+#ifdef __vita__
+	sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_STOP);
+	sceTouchSetSamplingState(SCE_TOUCH_PORT_BACK, SCE_TOUCH_SAMPLING_STATE_STOP);
+#endif
 	//SDL_JoystickOpen(0);
 
 	int numjoysticks = SDL_NumJoysticks();
