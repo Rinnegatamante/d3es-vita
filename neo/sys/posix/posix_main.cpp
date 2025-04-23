@@ -950,12 +950,27 @@ char *Sys_ConsoleInput( void ) {
 low level output
 ===============
 */
+#ifdef __vita__
+//#define NUKE_LOGS
+#endif
+
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO,"Utils NDK", __VA_ARGS__))
 #endif
 
 void Sys_DebugPrintf( const char *fmt, ... ) {
+#ifndef NUKE_LOGS
+#ifdef __vita__
+	va_list list;
+	static char string[0x8000];
+
+	va_start(list, fmt);
+	vsprintf(string, fmt, list);
+	va_end(list);
+
+	sceClibPrintf("[DBG] %s\n", string);
+#else
 	va_list argptr;
 
 	tty_Hide();
@@ -970,9 +985,12 @@ void Sys_DebugPrintf( const char *fmt, ... ) {
 #endif
 	va_end( argptr );
 	tty_Show();
+#endif
+#endif
 }
 
 void Sys_DebugVPrintf( const char *fmt, va_list arg ) {
+#ifndef __vita__
 	tty_Hide();
 #ifdef __ANDROID__
     char p[1000];
@@ -983,9 +1001,21 @@ void Sys_DebugVPrintf( const char *fmt, va_list arg ) {
 	vprintf( fmt, arg );
 #endif
 	tty_Show();
+#endif
 }
 
 void Sys_Printf(const char *msg, ...) {
+#ifndef NUKE_LOGS
+#ifdef __vita__
+	va_list list;
+	static char string[0x8000];
+
+	va_start(list, msg);
+	vsprintf(string, msg, list);
+	va_end(list);
+
+	sceClibPrintf("[SYS] %s\n", string);
+#else
 	va_list argptr;
 
 	tty_Hide();
@@ -1000,9 +1030,12 @@ void Sys_Printf(const char *msg, ...) {
 #endif
 	va_end( argptr );
 	tty_Show();
+#endif
+#endif
 }
 
 void Sys_VPrintf(const char *msg, va_list arg) {
+#ifndef __vita__
 	tty_Hide();
 #ifdef __ANDROID__
 	char p[1000];
@@ -1013,6 +1046,7 @@ void Sys_VPrintf(const char *msg, va_list arg) {
 	vprintf(msg, arg);
 #endif
 	tty_Show();
+#endif
 }
 
 /*
@@ -1021,6 +1055,17 @@ Sys_Error
 ================
 */
 void Sys_Error(const char *error, ...) {
+#ifndef NUKE_LOGS
+#ifdef __vita__
+	va_list list;
+	static char string[0x8000];
+
+	va_start(list, error);
+	vsprintf(string, error, list);
+	va_end(list);
+
+	sceClibPrintf("[ERROR] %s\n", string);
+#else
 	va_list argptr;
 
 	Sys_Printf( "Sys_Error: " );
@@ -1028,6 +1073,7 @@ void Sys_Error(const char *error, ...) {
 	Sys_DebugVPrintf( error, argptr );
 	va_end( argptr );
 	Sys_Printf( "\n" );
-
+#endif
+#endif
 	Posix_Exit( EXIT_FAILURE );
 }
