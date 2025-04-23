@@ -1128,6 +1128,21 @@ void idFileSystemLocal::FreeFile( void *buffer ) {
 	Mem_Free( buffer );
 }
 
+#ifdef __vita__
+#include <vitasdk.h>
+void generateFolder(const char *path) {
+	common->Printf( "Generating folder for %s\n", path );
+	char *s = strstr(path, "/");
+	while (s) {
+		char tmp = s[0];
+		s[0] = 0;
+		sceIoMkdir(path, 0777);
+		s[0] = tmp;
+		s = strstr(s + 1, "/");
+	}
+}
+#endif
+
 /*
 ============
 idFileSystemLocal::WriteFile
@@ -1148,8 +1163,15 @@ int idFileSystemLocal::WriteFile( const char *relativePath, const void *buffer, 
 
 	f = idFileSystemLocal::OpenFileWrite( relativePath, basePath );
 	if ( !f ) {
-		common->Printf( "Failed to open %s\n", relativePath );
-		return -1;
+#ifdef __vita__
+		generateFolder(relativePath);
+		f = idFileSystemLocal::OpenFileWrite( relativePath, basePath );
+		if ( !f )
+#endif
+		{
+			common->Printf( "Failed to open %s\n", relativePath );
+			return -1;
+		}
 	}
 
 	size = f->Write( buffer, size );
