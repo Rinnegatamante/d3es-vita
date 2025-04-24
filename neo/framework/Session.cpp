@@ -2485,10 +2485,11 @@ void idSessionLocal::Draw() {
 idSessionLocal::UpdateScreen
 ===============
 */
+#define FRAMESKIP_RENDERER
+bool skipRenderFrame = false;
 void idSessionLocal::UpdateScreen( bool outOfSequence ) {
 
 #ifdef _WIN32
-
 	if ( com_editors ) {
 		if ( !Sys_IsWindowVisible() ) {
 			return;
@@ -2512,7 +2513,11 @@ void idSessionLocal::UpdateScreen( bool outOfSequence ) {
 	renderSystem->BeginFrame( renderSystem->GetScreenWidth(), renderSystem->GetScreenHeight() );
 
 	// draw everything
-	Draw();
+#ifdef FRAMESKIP_RENDERER
+	skipRenderFrame = !skipRenderFrame;
+	if (!skipRenderFrame)
+#endif
+		Draw();
 
 	if ( com_speeds.GetBool() ) {
 		renderSystem->EndFrame( &time_frontend, &time_backend );
@@ -2783,6 +2788,7 @@ void idSessionLocal::RunGameTic() {
 
 	// run the game logic every player move
 	int	start = Sys_Milliseconds();
+	
 	gameReturn_t	ret = game->RunFrame( &cmd );
 
 	int end = Sys_Milliseconds();

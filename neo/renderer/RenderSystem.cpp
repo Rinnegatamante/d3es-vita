@@ -851,6 +851,7 @@ EndFrame
 Returns the number of msec spent in the back end
 =============
 */
+extern bool skipRenderFrame;
 void idRenderSystemLocal::EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	emptyCommand_t *cmd;
 
@@ -881,9 +882,10 @@ void idRenderSystemLocal::EndFrame( int *frontEndMsec, int *backEndMsec ) {
 
 	// add the swapbuffers command
 	cmd = (emptyCommand_t *)R_GetCommandBuffer( sizeof( *cmd ) );
-	cmd->commandId = RC_SWAP_BUFFERS;
-
-	// Render the commands. No pixel data passed so it will return immediatle if multithreading
+	if (!skipRenderFrame) {
+		cmd->commandId = RC_SWAP_BUFFERS;
+	}
+	// Render the commands. No pixel data passed so it will return immediatly if multithreading
 	RenderCommands(0, 0);
 
 	if ( session->writeDemo ) {
