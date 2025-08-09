@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef NO_LIGHT
-	printf("Launching with no lights\n");
+	sceClibPrintf("Launching with no lights\n");
 #endif
 
 #ifdef VITA
@@ -366,7 +366,7 @@ int main(int argc, char **argv) {
 	if (eventParam.type == 0x05) {
 		char buffer[2048];
 		sceAppUtilAppEventParseLiveArea(&eventParam, buffer);
-		printf("launching with %s\n", buffer);
+		sceClibPrintf("Launching with %s\n", buffer);
 		if (strstr(buffer, "custom"))
 			sceAppMgrLoadExec("app0:/no_lights.bin", NULL, NULL);
 	}
