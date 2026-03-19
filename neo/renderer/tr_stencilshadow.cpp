@@ -347,7 +347,7 @@ typedef struct {
 	int		numVerts;
 	idVec3	verts[MAX_CLIPPED_POINTS];
 	int		edgeFlags[MAX_CLIPPED_POINTS];
-} clipTri_t;
+} _clipTri_t;
 
 /*
 =============
@@ -361,8 +361,8 @@ I have some worries about edge flag cases when polygons are clipped
 multiple times near the epsilon.
 =============
 */
-static int R_ChopWinding( clipTri_t clipTris[2], int inNum, const idPlane &plane ) {
-	clipTri_t	*in, *out;
+static int R_ChopWinding( _clipTri_t clipTris[2], int inNum, const idPlane &plane ) {
+	_clipTri_t	*in, *out;
 	float	dists[MAX_CLIPPED_POINTS];
 	int		sides[MAX_CLIPPED_POINTS];
 	int		counts[3];
@@ -455,7 +455,7 @@ static bool	R_ClipTriangleToLight( const idVec3 &a, const idVec3 &b, const idVec
                                    const idPlane frustum[6] ) {
 	int			i;
 	int			base;
-	clipTri_t	pingPong[2], *ct;
+	_clipTri_t	pingPong[2], *ct;
 	int			p;
 
 	pingPong[0].numVerts = 3;
