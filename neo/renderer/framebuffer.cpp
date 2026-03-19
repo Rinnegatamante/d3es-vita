@@ -109,9 +109,9 @@ int createProgram(const char * vertexSource, const char *  fragmentSource)
 static void createShaders (void)
 {
 	const GLchar *vertSource = \
-           "void main(float4 a_position, float2 a_texCoord,                \n \
-			    float2 out v_texCoord : TEXCOORD0,                         \n \
-			    float4 out gl_Position : POSITION) {                       \n \
+		   "void main(float4 a_position, float2 a_texCoord,                \n \
+				float2 out v_texCoord : TEXCOORD0,                         \n \
+				float4 out gl_Position : POSITION) {                       \n \
 			   gl_Position = a_position;                                   \n \
 			   v_texCoord = a_texCoord;                                    \n \
 			}                                                              \n \
@@ -147,6 +147,9 @@ static void createShaders (void)
 	qglUniform1i(m_samplerLoc, 0);
 }
 
+#ifdef __vita__
+#define GL_DEPTH_STENCIL_ATTACHMENT                     0x821A
+#endif
 
 void R_InitFrameBuffer()
 {
@@ -191,9 +194,12 @@ void R_InitFrameBuffer()
 	qglGenFramebuffers(1, &m_framebuffer);
 
 	// Create renderbuffer
-	/*qglGenRenderbuffers(1, &m_depthbuffer);
+	qglGenRenderbuffers(1, &m_depthbuffer);
 	qglBindRenderbuffer(GL_RENDERBUFFER, m_depthbuffer);
 
+#ifdef __vita__
+	qglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, m_framebuffer_width, m_framebuffer_height);
+#else
 	if(glConfig.depthStencilAvailable)
 		qglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, m_framebuffer_width, m_framebuffer_height);
 	else
@@ -203,9 +209,9 @@ void R_InitFrameBuffer()
 		// Need separate Stencil buffer
 		qglGenRenderbuffers(1, &m_stencilbuffer);
 		qglBindRenderbuffer(GL_RENDERBUFFER, m_stencilbuffer);
-        qglRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, m_framebuffer_width, m_framebuffer_height);
-	}*/
-
+		qglRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, m_framebuffer_width, m_framebuffer_height);
+	}
+#endif
 	createShaders();
 }
 
@@ -215,27 +221,31 @@ void R_FrameBufferStart()
 		return;
 
 	// Render to framebuffer
-    qglBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-   // qglBindRenderbuffer(GL_RENDERBUFFER, 0);
+	qglBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+	qglBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-    qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_framebuffer_texture, 0);
+	qglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_framebuffer_texture, 0);
 
-    // Attach combined depth+stencil
-    /*if(glConfig.depthStencilAvailable)
-    {
-    	qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
-    	qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
+	// Attach combined depth+stencil
+#ifdef __vita__
+	qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
+#else
+	if(glConfig.depthStencilAvailable)
+	{
+		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
+		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
 	}
 	else
 	{
 		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_depthbuffer);
 		qglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_stencilbuffer);
-	}*/
+	}
+#endif
 
-    GLenum result = qglCheckFramebufferStatus(GL_FRAMEBUFFER);
+	GLenum result = qglCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if(result != GL_FRAMEBUFFER_COMPLETE)
 	{
-	    common->Error( "Error binding Framebuffer: %d\n", result );
+		common->Error( "Error binding Framebuffer: %d\n", result );
 	}
 }
 
@@ -261,7 +271,7 @@ void R_FrameBufferEnd()
 	{
 		-1.f, -1.f,  0.0f,  // 0. left-bottom
 		-1.f,  1.f,  0.0f,  // 1. left-top
-		1.f, 1.f,  0.0f,    // 2. right-top
+		1.f, 1.f,  0.0f,	// 2. right-top
 		1.f, -1.f,  0.0f,   // 3. right-bottom
 	};
 
