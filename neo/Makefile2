@@ -308,9 +308,14 @@ CXXFLAGS  = $(CFLAGS) -std=gnu++11 -fpermissive
 ASFLAGS = $(CFLAGS)
 
 all: $(TARGET).bin
-	
+
+traceable: build/tracer.self
+
 $(TARGET).bin: $(TARGET).velf
 	vita-make-fself -c -s $< build/$(TARGET).bin
+	
+build/tracer.self: $(TARGET).velf
+	python vita-make-fself-debug.py $(TARGET).velf build/tracer.self
 
 %.velf: %.elf
 	cp $< $<.unstripped.elf
@@ -321,4 +326,4 @@ $(TARGET).elf: $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $@
 
 clean:
-	@rm -rf $(TARGET).velf $(TARGET).elf $(OBJS) $(TARGET).elf.unstripped.elf $(TARGET).vpk build/eboot.bin ./param.sfo
+	@rm -rf $(TARGET).velf $(TARGET).elf $(OBJS) $(TARGET).elf.unstripped.elf $(TARGET).vpk build/eboot.bin ./param.sfo build/tracer.self
