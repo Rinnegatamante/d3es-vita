@@ -417,7 +417,9 @@ void RB_ExecuteBackEndCommands( const emptyCommand_t *cmds ) {
 			c_copyRenders++;
 			break;
 		default:
-			common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+			// FIXME: This sometimes somehow triggers on Vita, demoting it to a warning
+			//common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+			common->Printf( "RB_ExecuteBackEndCommands: bad commandId" );
 			break;
 		}
 	}
