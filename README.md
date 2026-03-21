@@ -1,11 +1,7 @@
-# ABOUT
+# d3es-vita
 
-Combination of the excellent _dhewm3_ and _d3wasm_ projects, now with multithreaded frontend and backend renderering.
+Port of Doom 3 for PSVita.
 
-Forked from:
-https://github.com/gabrielcuvillier/d3wasm
+## vitaGL flags
 
-With the GLES2 renderer from the awesome D3WASM project:
-https://github.com/gabrielcuvillier/d3wasm
-
-The backend is now run in a spearate thread in parallel with the front end. This give apporx 40% speed increase.
+`HAVE_WRAPPED_ALLOCATORS=1 NO_DEBUG=1 DRAW_SPEEDHACK=1 CIRCULAR_VERTEX_POOL=2`
