@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "renderer/Image.h"
 
-#ifdef VITA
+#ifdef __vita__
 #include <vitasdk.h>
 #endif
 
@@ -316,7 +316,7 @@ void rgba4444_convert_tex_image(
 #include "etc1_android.h"
 #endif
 
-unsigned int etc1_data_size(unsigned int width, unsigned int height) {
+inline __attribute__((always_inline)) unsigned int etc1_data_size(unsigned int width, unsigned int height) {
 	return (((width + 3) & ~3) * ((height + 3) & ~3)) >> 1;
 }
 
@@ -360,21 +360,42 @@ void etc1_compress_tex_image(
 	free(etc1data);
 }
 
-int etcavail(char* cachefname) {
+inline __attribute__((always_inline)) int etcavail(char* cachefname) {
+#ifdef __vita__
+	return sceIoOpen(cachefname, SCE_O_RDONLY, 0777);
+#else
 	return (r_useETC1Cache.GetBool())&&(r_useETC1.GetBool())&&(cachefname!=0)&&(fileSystem->ReadFile(cachefname,0,0)!=-1);
+#endif
 }
+
+#ifdef __vita__
+char etc_buffer[256 * 1024];
+#endif
 
 int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type) {
 	char* tmp;
 	int failed=0;
-
-	if( !etcavail( cachefname ) )
+	
+	int ret = etcavail( cachefname );
+#ifdef __vita__
+	if (ret < 0)
+#else
+	if (!ret)
+#endif
 		return 1;
 
+#ifdef __vita__
+	int sz = sceIoLseek(ret, 0, SCE_SEEK_END);
+	sceIoLseek(ret, 0, SCE_SEEK_SET);
+	tmp = etc_buffer;
+	sceIoRead(ret, tmp, sz);
+	sceIoClose(ret);
+#else
 	int sz = fileSystem->ReadFile(cachefname,(void**)&tmp,0);
 
 	if( sz == -1 )
 		return 1;
+#endif
 
 	if (tmp[0]==0) {
 		if (sz==etc1_data_size(width,height)+1) {
@@ -390,7 +411,9 @@ int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat,
 		}
 	}
 
+#ifndef __vita__
 	fileSystem->FreeFile(tmp);
+#endif
 	return failed;
 }
 
