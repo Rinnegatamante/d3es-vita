@@ -182,6 +182,7 @@ public:
 	static idCVar		com_aviDemoTics;
 	static idCVar		com_wipeSeconds;
 	static idCVar		com_guid;
+	static idCVar		com_frameSkip;
 
 	static idCVar		gui_configServerRate;
 

@@ -57,6 +57,7 @@ idCVar	idSessionLocal::com_aviDemoHeight( "com_aviDemoHeight", "256", CVAR_SYSTE
 idCVar	idSessionLocal::com_aviDemoTics( "com_aviDemoTics", "2", CVAR_SYSTEM | CVAR_INTEGER, "", 1, 60 );
 idCVar	idSessionLocal::com_wipeSeconds( "com_wipeSeconds", "1", CVAR_SYSTEM, "" );
 idCVar	idSessionLocal::com_guid( "com_guid", "", CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_ROM, "" );
+idCVar	idSessionLocal::com_frameSkip( "com_frameSkip", "0", CVAR_SYSTEM | CVAR_BOOL | CVAR_ARCHIVE, "" );
 
 idSessionLocal		sessLocal;
 idSession			*session = &sessLocal;
@@ -2485,7 +2486,6 @@ void idSessionLocal::Draw() {
 idSessionLocal::UpdateScreen
 ===============
 */
-#define FRAMESKIP_RENDERER
 bool skipRenderFrame = false;
 void idSessionLocal::UpdateScreen( bool outOfSequence ) {
 
@@ -2513,11 +2513,13 @@ void idSessionLocal::UpdateScreen( bool outOfSequence ) {
 	renderSystem->BeginFrame( renderSystem->GetScreenWidth(), renderSystem->GetScreenHeight() );
 
 	// draw everything
-#ifdef FRAMESKIP_RENDERER
-	skipRenderFrame = !skipRenderFrame;
-	if (!skipRenderFrame)
-#endif
+	if (com_frameSkip.GetBool()) {
+		skipRenderFrame = !skipRenderFrame;
+		if (!skipRenderFrame)
+			Draw();
+	} else {
 		Draw();
+	}
 
 	if ( com_speeds.GetBool() ) {
 		renderSystem->EndFrame( &time_frontend, &time_backend );
