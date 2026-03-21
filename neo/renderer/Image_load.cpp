@@ -385,10 +385,8 @@ int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat,
 		return 1;
 
 #ifdef __vita__
-	int sz = sceIoLseek(ret, 0, SCE_SEEK_END);
-	sceIoLseek(ret, 0, SCE_SEEK_SET);
 	tmp = etc_buffer;
-	sceIoRead(ret, tmp, sz);
+	sceIoRead(ret, tmp, 256 * 1024);
 	sceIoClose(ret);
 #else
 	int sz = fileSystem->ReadFile(cachefname,(void**)&tmp,0);
@@ -398,17 +396,9 @@ int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat,
 #endif
 
 	if (tmp[0]==0) {
-		if (sz==etc1_data_size(width,height)+1) {
-			qglCompressedTexImage2D(target,level,GL_ETC1_RGB8_OES,width,height,0,etc1_data_size(width,height),tmp + 1);
-		} else {
-			failed=1;
-		}
+		qglCompressedTexImage2D(target,level,GL_ETC1_RGB8_OES,width,height,0,etc1_data_size(width,height),tmp + 1);
 	} else {
-		if (sz==width*height*2+1) {
-			qglTexImage2D(target,level,format,width,height,border,format,GL_UNSIGNED_SHORT_4_4_4_4,tmp + 1);
-		} else {
-			failed=1;
-		}
+		qglTexImage2D(target,level,format,width,height,border,format,GL_UNSIGNED_SHORT_4_4_4_4,tmp + 1);
 	}
 
 #ifndef __vita__
