@@ -58,7 +58,7 @@ extern "C" int __real_open(const char *fname, int mode);
 extern "C" DIR *__real_opendir(const char *fname);
 
 char patched_fname[512];
-extern "C" char *patch_fname(char *fname) {
+extern "C" inline __attribute__((always_inline)) char *patch_fname(char *fname) {
 	if (strstr(fname, "ux0")) {
 		return fname;
 	}
@@ -88,14 +88,6 @@ extern "C" int __wrap_open(const char *fname, int mode) {
 
 extern "C" DIR *__wrap_opendir(const char *fname) {
 	return __real_opendir(patch_fname(fname));
-}
-
-extern "C" void *__wrap_memcpy(void *destination, const void *source, size_t num) {
-	return sceClibMemcpy(destination, source, num);
-}
-
-extern "C" void *__wrap_memset(void *ptr, int value, size_t num) {
-	return sceClibMemset(ptr, value, num);
 }
 
 #ifdef __ANDROID__
