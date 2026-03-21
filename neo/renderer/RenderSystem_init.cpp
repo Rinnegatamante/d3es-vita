@@ -55,6 +55,11 @@ idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BO
 idCVar r_customWidth( "r_customWidth", "960", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_mode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "544", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_mode to -1 to activate" );
 idCVar r_checkBounds( "r_checkBounds", "0", CVAR_RENDERER | CVAR_BOOL, "compare all surface bounds with precalculated ones" );
+#ifdef __vita__
+idCVar r_maxLights( "r_maxLights", "8", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "max number of active light sources at the same time" );
+#else
+idCVar r_maxLights( "r_maxLights", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "max number of active light sources at the same time" );
+#endif
 
 idCVar r_usePhong("r_usePhong", "0", CVAR_RENDERER | CVAR_BOOL, "use phong instead of blinn-phong shader for interactions" );
 idCVar r_specularExponent("r_specularExponent", "3", CVAR_RENDERER | CVAR_FLOAT, "specular exponent, to be used in GLSL shaders" );

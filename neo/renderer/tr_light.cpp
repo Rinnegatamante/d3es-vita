@@ -757,7 +757,54 @@ void R_AddLightSurfaces(void) {
 	viewLight_t* vLight;
 	idRenderLightLocal* light;
 	viewLight_t** ptr;
+	
+	// Reduce the number of lights active at the same time to reduce CPU workload
+	int maxLights = r_maxLights.GetInteger();
+	if ( maxLights > 0 ) {
+		int numLights = 0;
+		viewLight_t* lights[1024];
+		for ( vLight = tr.viewDef->viewLights; vLight; vLight = vLight->next )
+			lights[numLights++] = vLight;
 
+			auto importance = [&](viewLight_t* l) -> float {
+				// Give always max priority to ambient/fog lights
+				if ( l->lightShader->IsAmbientLight() ) return 0.0f;
+				if ( l->lightShader->IsFogLight() ) return 0.0f;
+				
+				// Score based on distance, light volume and brightness
+				const idVec3& r = l->lightDef->parms.lightRadius;
+				float volume = r.x * r.y * r.z;
+				float brightness = l->lightDef->parms.shaderParms[0] +
+					l->lightDef->parms.shaderParms[1] +
+					l->lightDef->parms.shaderParms[2];
+				idVec3 delta = l->globalLightOrigin - tr.viewDef->renderView.vieworg;
+				float distSq = delta.LengthSqr() + 1.0f;
+				float score = distSq / (volume * brightness + 1.0f);
+				
+				return score;
+			};
+
+		// Sort all active lights
+		for ( int i = 0; i < numLights - 1; i++ ) {
+			for ( int j = i + 1; j < numLights; j++ ) {
+				if ( importance(lights[j]) < importance(lights[i]) )
+					idSwap(lights[i], lights[j]);
+			}
+		}
+
+		// Keep active only r_maxLights number of lights
+		int cap = r_maxLights.GetInteger();
+		tr.viewDef->viewLights = NULL;
+		for ( int i = numLights - 1; i >= 0; i-- ) {
+			if ( i < maxLights ) {
+				lights[i]->next = tr.viewDef->viewLights;
+				tr.viewDef->viewLights = lights[i];
+			} else {
+				lights[i]->lightDef->viewCount = -1;
+			}
+		}
+	}
+	
 	// go through each visible light, possibly removing some from the list
 	ptr = &tr.viewDef->viewLights;
 	while ( *ptr ) {
