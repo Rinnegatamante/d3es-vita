@@ -907,7 +907,7 @@ void idInteraction::CreateInteraction( const idRenderModel *model ) {
 		}
 
 		// if the interaction has shadows and this surface casts a shadow
-		if ( HasShadows() && shader->SurfaceCastsShadow() && tri->silEdges != NULL ) {
+		if ( HasShadows() && !r_shadows.GetBool() && shader->SurfaceCastsShadow() && tri->silEdges != NULL ) {
 
 			// if the light has an optimized shadow volume, don't create shadows for any models that are part of the base areas
 			if ( lightDef->parms.prelightModel == NULL || !model->IsStaticWorldModel() || !r_useOptimizedShadows.GetBool() ) {
@@ -1160,7 +1160,7 @@ void idInteraction::AddActiveInteraction( void ) {
 
 		// the shadows will always have to be added, unless we can tell they
 		// are from a surface in an unconnected area
-		if ( shadowTris ) {
+		if ( shadowTris && !r_shadows.GetBool() ) {
 
 			// check for view specific shadow suppression (player shadows, etc)
 			if ( !r_skipSuppress.GetBool() ) {
