@@ -93,6 +93,7 @@ IDLIBOBJS = \
     idlib/math/Simd_SSE.o \
     idlib/math/Simd_SSE2.o \
     idlib/math/Simd_SSE3.o \
+    idlib/math/Simd_NEON.o \
     idlib/math/Vector.o \
     idlib/BitMsg.o \
     idlib/LangDict.o \
