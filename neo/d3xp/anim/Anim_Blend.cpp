@@ -83,7 +83,11 @@ idAnim::idAnim( const idDeclModelDef *modelDef, const idAnim *anim ) {
 	}
 
 	frameLookup.SetNum( anim->frameLookup.Num() );
+#ifdef __vita__
+	sceClibMemcpy( frameLookup.Ptr(), anim->frameLookup.Ptr(), frameLookup.MemoryUsed() );
+#else
 	memcpy( frameLookup.Ptr(), anim->frameLookup.Ptr(), frameLookup.MemoryUsed() );
+#endif
 
 	frameCommands.SetNum( anim->frameCommands.Num() );
 	for( i = 0; i < frameCommands.Num(); i++ ) {
@@ -2224,9 +2228,15 @@ void idDeclModelDef::CopyDecl( const idDeclModelDef *decl ) {
 	}
 
 	joints.SetNum( decl->joints.Num() );
+#ifdef __vita__
+	sceClibMemcpy( joints.Ptr(), decl->joints.Ptr(), decl->joints.Num() * sizeof( joints[0] ) );
+	jointParents.SetNum( decl->jointParents.Num() );
+	sceClibMemcpy( jointParents.Ptr(), decl->jointParents.Ptr(), decl->jointParents.Num() * sizeof( jointParents[0] ) );
+#else
 	memcpy( joints.Ptr(), decl->joints.Ptr(), decl->joints.Num() * sizeof( joints[0] ) );
 	jointParents.SetNum( decl->jointParents.Num() );
 	memcpy( jointParents.Ptr(), decl->jointParents.Ptr(), decl->jointParents.Num() * sizeof( jointParents[0] ) );
+#endif
 	for ( i = 0; i < ANIM_NumAnimChannels; i++ ) {
 		channelJoints[i] = decl->channelJoints[i];
 	}
@@ -4319,7 +4329,11 @@ bool idAnimator::CreateFrame( int currentTime, bool force ) {
 
 	numJoints = modelDef->Joints().Num();
 	idJointQuat *jointFrame = ( idJointQuat * )_alloca16( numJoints * sizeof( jointFrame[0] ) );
+#ifdef __vita__
+	sceClibMemcpy( jointFrame, defaultPose, numJoints * sizeof( jointFrame[0] ) );
+#else
 	SIMDProcessor->Memcpy( jointFrame, defaultPose, numJoints * sizeof( jointFrame[0] ) );
+#endif
 
 	hasAnim = false;
 

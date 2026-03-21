@@ -750,9 +750,11 @@ static void R_CalcPointCull( const srfTriangles_t *tri, const idPlane frustum[6]
 	int frontBits;
 	float *planeSide;
 	byte *side1, *side2;
-
+#ifdef __vita__
+	sceClibMemset( remap, -1, tri->numVerts * sizeof( remap[0] ) );
+#else
 	SIMDProcessor->Memset( remap, -1, tri->numVerts * sizeof( remap[0] ) );
-
+#endif
 	for ( frontBits = 0, i = 0; i < 6; i++ ) {
 		// get front bits for the whole surface
 		if ( tri->bounds.PlaneDistance( frustum[i] ) >= LIGHT_CLIP_EPSILON ) {
@@ -773,8 +775,13 @@ static void R_CalcPointCull( const srfTriangles_t *tri, const idPlane frustum[6]
 	planeSide = (float *) _alloca16( tri->numVerts * sizeof( float ) );
 	side1 = (byte *) _alloca16( tri->numVerts * sizeof( byte ) );
 	side2 = (byte *) _alloca16( tri->numVerts * sizeof( byte ) );
+#ifdef __vita__
+	sceClibMemset( side1, 0, tri->numVerts * sizeof( byte ) );
+	sceClibMemset( side2, 0, tri->numVerts * sizeof( byte ) );
+#else
 	SIMDProcessor->Memset( side1, 0, tri->numVerts * sizeof( byte ) );
 	SIMDProcessor->Memset( side2, 0, tri->numVerts * sizeof( byte ) );
+#endif
 
 	for ( i = 0; i < 6; i++ ) {
 
@@ -1286,7 +1293,11 @@ srfTriangles_t *R_CreateShadowVolume( const idRenderEntityLocal *ent,
 	// the shadow verts will go into a main memory buffer as well as a vertex
 	// cache buffer, so they can be copied back if they are purged
 	R_AllocStaticTriSurfShadowVerts( newTri, newTri->numVerts );
+#ifdef __vita__
+	sceClibMemcpy( newTri->shadowVertexes, shadowVerts, newTri->numVerts * sizeof( newTri->shadowVertexes[0] ) );
+#else
 	SIMDProcessor->Memcpy( newTri->shadowVertexes, shadowVerts, newTri->numVerts * sizeof( newTri->shadowVertexes[0] ) );
+#endif
 
 	R_AllocStaticTriSurfIndexes( newTri, newTri->numIndexes );
 
@@ -1297,30 +1308,49 @@ srfTriangles_t *R_CreateShadowVolume( const idRenderEntityLocal *ent,
 		newTri->numShadowIndexesNoCaps = 0;
 		for ( i = 0 ; i < indexFrustumNumber ; i++ ) {
 			int	c = indexRef[i].end - indexRef[i].silStart;
+#ifdef __vita__
+			sceClibMemcpy( newTri->indexes+newTri->numShadowIndexesNoCaps,
+			                       shadowIndexes+indexRef[i].silStart, c * sizeof( newTri->indexes[0] ) );
+#else
 			SIMDProcessor->Memcpy( newTri->indexes+newTri->numShadowIndexesNoCaps,
 			                       shadowIndexes+indexRef[i].silStart, c * sizeof( newTri->indexes[0] ) );
+#endif
 			newTri->numShadowIndexesNoCaps += c;
 		}
 		// copy rear cap indexes next
 		newTri->numShadowIndexesNoFrontCaps = newTri->numShadowIndexesNoCaps;
 		for ( i = 0 ; i < indexFrustumNumber ; i++ ) {
 			int	c = indexRef[i].silStart - indexRef[i].rearCapStart;
+#ifdef __vita__
+			sceClibMemcpy( newTri->indexes+newTri->numShadowIndexesNoFrontCaps,
+			                       shadowIndexes+indexRef[i].rearCapStart, c * sizeof( newTri->indexes[0] ) );
+#else
 			SIMDProcessor->Memcpy( newTri->indexes+newTri->numShadowIndexesNoFrontCaps,
 			                       shadowIndexes+indexRef[i].rearCapStart, c * sizeof( newTri->indexes[0] ) );
+#endif
 			newTri->numShadowIndexesNoFrontCaps += c;
 		}
 		// copy front cap indexes last
 		newTri->numIndexes = newTri->numShadowIndexesNoFrontCaps;
 		for ( i = 0 ; i < indexFrustumNumber ; i++ ) {
 			int	c = indexRef[i].rearCapStart - indexRef[i].frontCapStart;
+#ifdef __vita__
+			sceClibMemcpy( newTri->indexes+newTri->numIndexes,
+			                       shadowIndexes+indexRef[i].frontCapStart, c * sizeof( newTri->indexes[0] ) );
+#else
 			SIMDProcessor->Memcpy( newTri->indexes+newTri->numIndexes,
 			                       shadowIndexes+indexRef[i].frontCapStart, c * sizeof( newTri->indexes[0] ) );
+#endif
 			newTri->numIndexes += c;
 		}
 
 	} else {
 		newTri->shadowCapPlaneBits = 63;	// we don't have optimized index lists
+#ifdef __vita__
+		sceClibMemcpy( newTri->indexes, shadowIndexes, newTri->numIndexes * sizeof( newTri->indexes[0] ) );
+#else
 		SIMDProcessor->Memcpy( newTri->indexes, shadowIndexes, newTri->numIndexes * sizeof( newTri->indexes[0] ) );
+#endif
 	}
 
 	return newTri;

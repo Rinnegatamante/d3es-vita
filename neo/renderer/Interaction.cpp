@@ -118,7 +118,11 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal *ent, const srfTriangl
 	}
 
 	cullInfo.cullBits = (byte *) R_StaticAlloc( tri->numVerts * sizeof( cullInfo.cullBits[0] ) );
+#ifdef __vita__
+	sceClibMemset( cullInfo.cullBits, 0, tri->numVerts * sizeof( cullInfo.cullBits[0] ) );
+#else
 	SIMDProcessor->Memset( cullInfo.cullBits, 0, tri->numVerts * sizeof( cullInfo.cullBits[0] ) );
+#endif
 
 	float *planeSide = (float *) _alloca16( tri->numVerts * sizeof( float ) );
 

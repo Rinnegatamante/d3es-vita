@@ -115,7 +115,11 @@ int idWaveFile::Open( const char* strFileName, waveformatex_t* pwfx ) {
 
 	if ( mck.cksize != 0xffffffff ) {
 		if ( pwfx ) {
+#ifdef __vita__
+			sceClibMemcpy( pwfx, (waveformatex_t *)&mpwfx, sizeof(waveformatex_t));
+#else
 			memcpy( pwfx, (waveformatex_t *)&mpwfx, sizeof(waveformatex_t));
+#endif
 		}
 		return 0;
 	}
@@ -193,7 +197,11 @@ int idWaveFile::ReadMMIO( void ) {
 	pcmWaveFormat.wBitsPerSample = LittleShort( pcmWaveFormat.wBitsPerSample );
 
 	// Copy the bytes from the pcm structure to the waveformatex_t structure
+#ifdef __vita__
+	sceClibMemcpy( &mpwfx, &pcmWaveFormat, sizeof(pcmWaveFormat) );
+#else
 	memcpy( &mpwfx, &pcmWaveFormat, sizeof(pcmWaveFormat) );
+#endif
 
 	// Allocate the waveformatex_t, but if its not pcm format, read the next
 	// word, and thats how many extra bytes to allocate.
@@ -279,7 +287,11 @@ int idWaveFile::Read( byte* pBuffer, int dwSizeToRead, int *pdwSizeRead ) {
 		if( (byte*)(mpbDataCur + dwSizeToRead) > (byte*)(mpbData + mulDataSize) ) {
 			dwSizeToRead = mulDataSize - (int)(mpbDataCur - mpbData);
 		}
+#ifdef __vita__
+		sceClibMemcpy( pBuffer, mpbDataCur, dwSizeToRead );
+#else
 		SIMDProcessor->Memcpy( pBuffer, mpbDataCur, dwSizeToRead );
+#endif
 		mpbDataCur += dwSizeToRead;
 
 		if ( pdwSizeRead != NULL ) {

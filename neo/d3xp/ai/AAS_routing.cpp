@@ -53,9 +53,17 @@ idRoutingCache::idRoutingCache( int size ) {
 	type = 0;
 	this->size = size;
 	reachabilities = new byte[size];
+#ifdef __vita__
+	sceClibMemset( reachabilities, 0, size * sizeof( reachabilities[0] ) );
+#else
 	memset( reachabilities, 0, size * sizeof( reachabilities[0] ) );
+#endif
 	travelTimes = new unsigned short[size];
+#ifdef __vita__
+	sceClibMemset( travelTimes, 0, size * sizeof( travelTimes[0] ) );
+#else
 	memset( travelTimes, 0, size * sizeof( travelTimes[0] ) );
+#endif
 }
 
 /*
@@ -725,7 +733,11 @@ void idAASLocal::UpdateAreaRoutingCache( idRoutingCache *areaCache ) const {
 
 	areaCache->travelTimes[clusterAreaNum] = areaCache->startTravelTime;
 	badTravelFlags = ~areaCache->travelFlags;
+#ifdef __vita__
+	sceClibMemset( startAreaTravelTimes, 0, sizeof( startAreaTravelTimes ) );
+#else
 	memset( startAreaTravelTimes, 0, sizeof( startAreaTravelTimes ) );
+#endif
 
 	// initialize first update
 	curUpdate = &areaUpdate[clusterAreaNum];
@@ -1194,7 +1206,11 @@ bool idAASLocal::FindNearestGoal( aasGoal_t &goal, int areaNum, const idVec3 ori
 	}
 
 	badTravelFlags = ~travelFlags;
+#fidef __vita__
+	sceClibMemset( goalAreaTravelTimes, 0, file->GetNumAreas() * sizeof( unsigned short ) );
+#else
 	SIMDProcessor->Memset( goalAreaTravelTimes, 0, file->GetNumAreas() * sizeof( unsigned short ) );
+#endif
 
 	targetDist = (target - origin).Length();
 

@@ -644,7 +644,11 @@ void idMD5Anim::GetInterpolatedFrame( frameBlend_t &frame, idJointQuat *joints, 
 	int						*lerpIndex;
 
 	// copy the baseframe
+#ifdef __vita__
+	sceClibMemcpy( joints, baseFrame.Ptr(), baseFrame.Num() * sizeof( baseFrame[ 0 ] ) );
+#else
 	SIMDProcessor->Memcpy( joints, baseFrame.Ptr(), baseFrame.Num() * sizeof( baseFrame[ 0 ] ) );
+#endif
 
 	if ( !numAnimatedComponents ) {
 		// just use the base frame
@@ -829,7 +833,11 @@ void idMD5Anim::GetSingleFrame( int framenum, idJointQuat *joints, const int *in
 	const jointAnimInfo_t	*infoPtr;
 
 	// copy the baseframe
+#ifdef __vita__
+	sceClibMemcpy( joints, baseFrame.Ptr(), baseFrame.Num() * sizeof( baseFrame[ 0 ] ) );
+#else
 	SIMDProcessor->Memcpy( joints, baseFrame.Ptr(), baseFrame.Num() * sizeof( baseFrame[ 0 ] ) );
+#endif
 
 	if ( ( framenum == 0 ) || !numAnimatedComponents ) {
 		// just use the base frame

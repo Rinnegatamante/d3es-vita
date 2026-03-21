@@ -151,7 +151,11 @@ srfTriangles_t *R_CreateVertexProgramTurboShadowVolume(const idRenderEntityLocal
 	// allocate memory for the indexes
 	R_AllocStaticTriSurfIndexes(newTri, newTri->numIndexes);
 	// copy the indexes we created for the sil planes
+#ifdef __vita__
+	sceClibMemcpy(newTri->indexes, tempIndexes, numShadowIndexes * sizeof(tempIndexes[0]));
+#else
 	SIMDProcessor->Memcpy(newTri->indexes, tempIndexes, numShadowIndexes * sizeof(tempIndexes[0]));
+#endif
 #endif
 
 	// these have no effect, because they extend to infinity

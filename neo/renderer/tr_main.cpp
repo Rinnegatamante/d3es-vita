@@ -336,7 +336,11 @@ void *R_ClearedStaticAlloc( int bytes ) {
 	void	*buf;
 
 	buf = R_StaticAlloc( bytes );
+#ifdef __vita__
+	sceClibMemset( buf, 0, bytes );
+#else
 	SIMDProcessor->Memset( buf, 0, bytes );
+#endif
 	return buf;
 }
 
@@ -431,7 +435,11 @@ void *R_ClearedFrameAlloc( int bytes ) {
 	void	*r;
 
 	r = R_FrameAlloc( bytes );
+#ifdef __vita__
+	sceClibMemset( r, 0, bytes );
+#else
 	SIMDProcessor->Memset( r, 0, bytes );
+#endif
 	return r;
 }
 
@@ -862,8 +870,11 @@ void R_SetViewMatrix( viewDef_t *viewDef ) {
 	};
 
 	world = &viewDef->worldSpace;
-
+#ifdef __vita__
+	sceClibMemset( world, 0, sizeof(*world) );
+#else
 	memset( world, 0, sizeof(*world) );
+#endif
 
 	// the model matrix is an identity
 	world->modelMatrix[0*4+0] = 1;

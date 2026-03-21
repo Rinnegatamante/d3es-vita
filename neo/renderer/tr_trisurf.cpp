@@ -544,8 +544,13 @@ srfTriangles_t *R_CopyStaticTriSurf( const srfTriangles_t *tri ) {
 	R_AllocStaticTriSurfIndexes( newTri, tri->numIndexes );
 	newTri->numVerts = tri->numVerts;
 	newTri->numIndexes = tri->numIndexes;
+#ifdef __vita__
+	sceClibMemcpy( newTri->verts, tri->verts, tri->numVerts * sizeof( newTri->verts[0] ) );
+	sceClibMemcpy( newTri->indexes, tri->indexes, tri->numIndexes * sizeof( newTri->indexes[0] ) );
+#else
 	memcpy( newTri->verts, tri->verts, tri->numVerts * sizeof( newTri->verts[0] ) );
 	memcpy( newTri->indexes, tri->indexes, tri->numIndexes * sizeof( newTri->indexes[0] ) );
+#endif
 
 	return newTri;
 }
@@ -817,7 +822,11 @@ void R_CreateDupVerts( srfTriangles_t *tri ) {
 	}
 
 	tri->dupVerts = triDupVertAllocator.Alloc( tri->numDupVerts * 2 );
+#ifdef __vita__
+	sceClibMemcpy( tri->dupVerts, tempDupVerts, tri->numDupVerts * 2 * sizeof( tri->dupVerts[0] ) );
+#else
 	memcpy( tri->dupVerts, tempDupVerts, tri->numDupVerts * 2 * sizeof( tri->dupVerts[0] ) );
+#endif
 }
 
 /*
@@ -1116,7 +1125,11 @@ void R_IdentifySilEdges( srfTriangles_t *tri, bool omitCoplanarEdges ) {
 
 	tri->numSilEdges = numSilEdges;
 	tri->silEdges = triSilEdgeAllocator.Alloc( numSilEdges );
+#ifdef __vita__
+	sceClibMemcpy( tri->silEdges, silEdges, numSilEdges * sizeof( tri->silEdges[0] ) );
+#else
 	memcpy( tri->silEdges, silEdges, numSilEdges * sizeof( tri->silEdges[0] ) );
+#endif
 }
 
 /*
@@ -1314,7 +1327,11 @@ static void	R_DuplicateMirroredVertexes( srfTriangles_t *tri ) {
 #else
 	idDrawVert *oldVerts = tri->verts;
 	R_AllocStaticTriSurfVerts( tri, totalVerts );
+#ifdef __vita__
+	sceClibMemcpy( tri->verts, oldVerts, tri->numVerts * sizeof( tri->verts[0] ) );
+#else
 	memcpy( tri->verts, oldVerts, tri->numVerts * sizeof( tri->verts[0] ) );
+#endif
 	triVertexAllocator.Free( oldVerts );
 #endif
 
@@ -2041,7 +2058,11 @@ srfTriangles_t	*R_MergeSurfaceList( const srfTriangles_t **surfaces, int numSurf
 	totalIndexes = 0;
 	for ( i = 0 ; i < numSurfaces ; i++ ) {
 		tri = surfaces[i];
+#ifdef __vita__
+		sceClibMemcpy( newTri->verts + totalVerts, tri->verts, tri->numVerts * sizeof( *tri->verts ) );
+#else
 		memcpy( newTri->verts + totalVerts, tri->verts, tri->numVerts * sizeof( *tri->verts ) );
+#endif
 		for ( j = 0 ; j < tri->numIndexes ; j++ ) {
 			newTri->indexes[ totalIndexes + j ] = totalVerts + tri->indexes[j];
 		}
@@ -2167,7 +2188,11 @@ deformInfo_t *R_BuildDeformInfo( int numVerts, const idDrawVert *verts, int numI
 
 	tri.numVerts = numVerts;
 	R_AllocStaticTriSurfVerts( &tri, tri.numVerts );
+#ifdef __vita__
+	sceClibMemcpy( tri.verts, verts, tri.numVerts * sizeof( tri.verts[0] ) );
+#else
 	SIMDProcessor->Memcpy( tri.verts, verts, tri.numVerts * sizeof( tri.verts[0] ) );
+#endif
 
 	tri.numIndexes = numIndexes;
 	R_AllocStaticTriSurfIndexes( &tri, tri.numIndexes );

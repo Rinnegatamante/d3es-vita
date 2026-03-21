@@ -618,9 +618,11 @@ void idSoundWorldLocal::AVIUpdate() {
 
 	float	mix[MIXBUFFER_SAMPLES*6+16];
 	float	*mix_p = (float *)((( intptr_t)mix + 15 ) & ~15);	// SIMD align
-
+#ifdef __vita__
+	sceClibMemset( mix_p, 0, MIXBUFFER_SAMPLES*sizeof(float)*numSpeakers );
+#else
 	SIMDProcessor->Memset( mix_p, 0, MIXBUFFER_SAMPLES*sizeof(float)*numSpeakers );
-
+#endif
 	MixLoop( lastAVI44kHz, numSpeakers, mix_p );
 
 	for ( int i = 0; i < numSpeakers; i++ ) {
@@ -1870,7 +1872,11 @@ void idSoundWorldLocal::AddChannelContribution( idSoundEmitterLocal *sound, idSo
 
 				if ( sample->objectInfo.nChannels == 2 ) {
 					// need to add a stereo path, but very few samples go through this
+#ifdef __vita__
+					sceClibMemset( alignedInputSamples, 0, sizeof( alignedInputSamples[0] ) * MIXBUFFER_SAMPLES * 2 );
+#else
 					memset( alignedInputSamples, 0, sizeof( alignedInputSamples[0] ) * MIXBUFFER_SAMPLES * 2 );
+#endif
 				} else {
 					slow.GatherChannelSamples( offset, MIXBUFFER_SAMPLES, alignedInputSamples );
 				}

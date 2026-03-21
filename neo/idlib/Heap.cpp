@@ -158,8 +158,11 @@ void idHeap::Init () {
 
 	largeFirstUsedPage	= NULL;								// init large heap manager
 	swapPage			= NULL;
-
+#ifdef __vita__
+	sceClibMemset( smallFirstFree, 0, sizeof(smallFirstFree) );	// init small heap manager
+#else
 	memset( smallFirstFree, 0, sizeof(smallFirstFree) );	// init small heap manager
+#endif
 	smallFirstUsedPage	= NULL;
 	smallCurPage		= AllocatePage( pageSize );
 	assert( smallCurPage );
@@ -1150,7 +1153,11 @@ Mem_ClearedAlloc
 */
 void *Mem_ClearedAlloc( const int size ) {
 	void *mem = Mem_Alloc( size );
+#ifdef __vita__
+	sceClibMemset( mem, 0, size );
+#else
 	SIMDProcessor->Memset( mem, 0, size );
+#endif
 	return mem;
 }
 
@@ -1678,7 +1685,11 @@ Mem_ClearedAlloc
 */
 void *Mem_ClearedAlloc( const int size, const char *fileName, const int lineNumber ) {
 	void *mem = Mem_Alloc( size, fileName, lineNumber );
+#ifdef __vita__
+	sceClibMemset( mem, 0, size );
+#else
 	SIMDProcessor->Memset( mem, 0, size );
+#endif
 	return mem;
 }
 

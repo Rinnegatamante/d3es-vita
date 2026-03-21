@@ -154,7 +154,11 @@ void idRenderModelOverlay::CreateOverlay( const idRenderModel *model, const idPl
 		SIMDProcessor->OverlayPointCull( cullBits, texCoords, localTextureAxis, stri->verts, stri->numVerts );
 
 		glIndex_t *vertexRemap = (glIndex_t *)_alloca16( sizeof( vertexRemap[0] ) * stri->numVerts );
+#ifdef __vita__
+		sceClibMemset( vertexRemap, -1,  sizeof( vertexRemap[0] ) * stri->numVerts );
+#else
 		SIMDProcessor->Memset( vertexRemap, -1,  sizeof( vertexRemap[0] ) * stri->numVerts );
+#endif
 
 		// find triangles that need the overlay
 		int numVerts = 0;
@@ -284,7 +288,11 @@ void idRenderModelOverlay::AddOverlaySurfacesToModel( idRenderModel *baseModel )
 			newSurf->geometry = R_AllocStaticTriSurf();
 			R_AllocStaticTriSurfVerts( newSurf->geometry, numVerts );
 			R_AllocStaticTriSurfIndexes( newSurf->geometry, numIndexes );
+#ifdef __vita__
+			sceClibMemset( newSurf->geometry->verts, 0, numVerts * sizeof( newTri->verts[0] ) );
+#else
 			SIMDProcessor->Memset( newSurf->geometry->verts, 0, numVerts * sizeof( newTri->verts[0] ) );
+#endif
 		} else {
 			R_FreeStaticTriSurfVertexCaches( newSurf->geometry );
 		}

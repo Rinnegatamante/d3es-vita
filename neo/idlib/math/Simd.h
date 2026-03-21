@@ -207,4 +207,8 @@ public:
 // pointer to SIMD processor
 extern idSIMDProcessor *SIMDProcessor;
 
+#ifdef __vita__
+#include <vitasdk.h>
+#endif
+
 #endif /* !__MATH_SIMD_H__ */
