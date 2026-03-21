@@ -874,7 +874,7 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 	}
 
 	// depth-fail stencil shadows
-	if ( !external ) {
+	/*if ( !external ) {
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_DECR, GL_KEEP);
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_INCR, GL_KEEP);
 	} else {
@@ -882,10 +882,10 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_FRONT : GL_BACK, GL_KEEP, GL_KEEP, GL_INCR);
 		qglStencilOpSeparate(backEnd.viewDef->isMirror ? GL_BACK : GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR);
 	}
-	RB_DrawShadowElementsWithCounters(surf, numIndexes);
+	RB_DrawShadowElementsWithCounters(surf, numIndexes);*/
 
 	// patent-free work around
-	/*if (!external) {
+	if (!external) {
 	  // "preload" the stencil buffer with the number of volumes
 	  // that get clipped by the near or far clip plane
 	  qglStencilOp(GL_KEEP, GL_DECR, GL_DECR);
@@ -903,7 +903,7 @@ static void RB_T_GLSL_Shadow(const drawSurf_t* surf, const viewLight_t* vLight) 
 
 	qglStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
 	GL_Cull(CT_BACK_SIDED);
-	RB_DrawShadowElementsWithCounters(surf, numIndexes);*/
+	RB_DrawShadowElementsWithCounters(surf, numIndexes);
 }
 
 
