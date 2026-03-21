@@ -380,7 +380,7 @@ int VPCALL idSIMD_NEON::CreateVertexProgramShadowCache(idVec4*vc,
     const char*base=reinterpret_cast<const char*>(v);
     for(int i=0;i<n;++i){
         const float*xyz=reinterpret_cast<const float*>(
-            base+i*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
+            base+i*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
         const float x=xyz[0],y=xyz[1],z=xyz[2];
         vst1q_f32(vc[i*2+0].ToFloatPtr(), make_f32x4(x,y,z,1.f));
         vst1q_f32(vc[i*2+1].ToFloatPtr(), make_f32x4(x,y,z,0.f));
@@ -396,7 +396,7 @@ int VPCALL idSIMD_NEON::CreateShadowCache(idVec4*vc,int*vr,
     for(int i=0;i<n;++i){
         if(vr[i]!=0) continue;   /* already remapped */
         const float*xyz=reinterpret_cast<const float*>(
-            base+i*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
+            base+i*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
         vst1q_f32(vc[out+0].ToFloatPtr(),
                   make_f32x4(xyz[0],       xyz[1],       xyz[2],       1.f));
         vst1q_f32(vc[out+1].ToFloatPtr(),
@@ -414,7 +414,7 @@ void VPCALL idSIMD_NEON::MinMax(idVec3&mn,idVec3&mx,
     const char*base=reinterpret_cast<const char*>(src);
     for(int i=0;i<count;++i){
         const float*xyz=reinterpret_cast<const float*>(
-            base+indexes[i]*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
+            base+indexes[i]*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
         float32x4_t v=make_f32x4(xyz[0],xyz[1],xyz[2],0.f);
         vmin=vminq_f32(vmin,v); vmax=vmaxq_f32(vmax,v);
     }
@@ -430,10 +430,10 @@ void VPCALL idSIMD_NEON::Dot(float*dst,const idPlane&constant,
     const char*base=reinterpret_cast<const char*>(src);
     int i=0;
     for(;i<=count-4;i+=4){
-        const float*p0=reinterpret_cast<const float*>(base+(i+0)*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
-        const float*p1=reinterpret_cast<const float*>(base+(i+1)*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
-        const float*p2=reinterpret_cast<const float*>(base+(i+2)*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
-        const float*p3=reinterpret_cast<const float*>(base+(i+3)*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
+        const float*p0=reinterpret_cast<const float*>(base+(i+0)*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
+        const float*p1=reinterpret_cast<const float*>(base+(i+1)*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
+        const float*p2=reinterpret_cast<const float*>(base+(i+2)*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
+        const float*p3=reinterpret_cast<const float*>(base+(i+3)*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
         float32x4_t x4=make_f32x4(p0[0],p1[0],p2[0],p3[0]);
         float32x4_t y4=make_f32x4(p0[1],p1[1],p2[1],p3[1]);
         float32x4_t z4=make_f32x4(p0[2],p1[2],p2[2],p3[2]);
@@ -443,7 +443,7 @@ void VPCALL idSIMD_NEON::Dot(float*dst,const idPlane&constant,
     }
     for(;i<count;++i){
         const float*xyz=reinterpret_cast<const float*>(
-            base+i*NEON_DRAWVERT_SIZE+NEON_DRAWVERT_XYZ_OFFSET);
+            base+i*DRAWVERT_SIZE+DRAWVERT_XYZ_OFFSET);
         dst[i]=c[0]*xyz[0]+c[1]*xyz[1]+c[2]*xyz[2]+c[3];
     }
 }
