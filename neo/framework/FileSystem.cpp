@@ -287,11 +287,11 @@ typedef struct {
 	pureStatus_t		pureStatus;
 	bool				isNew;						// for downloaded paks
 #ifdef VITA
-    bool				isPSARC;
-    int					psarcHandle;
-    void				*psarcMountBuf;
-    idStr				psarcMountPoint;
-    int					*psarcFileSizes;
+	bool				isPSARC;
+	int					psarcHandle;
+	void				*psarcMountBuf;
+	idStr				psarcMountPoint;
+	int					*psarcFileSizes;
 #endif
 	fileInPack_t		*hashTable[FILE_HASH_SIZE];
 	fileInPack_t		*buildBuffer;
@@ -392,9 +392,9 @@ public:
 	virtual bool			FilenameCompare( const char *s1, const char *s2 ) const;
 	
 #ifdef __vita__
-    pack_t *           		LoadPSARCFile( const char *psarcPath );
-    idFile_InPSARC *   		ReadFileFromPSARC( pack_t *pak, fileInPack_t *pakFile, const char *relativePath );
-    void               		FreePSARCPack( pack_t *pak );
+	pack_t *           		LoadPSARCFile( const char *psarcPath );
+	idFile_InPSARC *   		ReadFileFromPSARC( pack_t *pak, fileInPack_t *pakFile, const char *relativePath );
+	void               		FreePSARCPack( pack_t *pak );
 #endif
 
 	static void				Dir_f( const idCmdArgs &args );
@@ -4024,6 +4024,7 @@ pack_t *idFileSystemLocal::LoadPSARCFile(const char *psarcPath) {
 
 	SceFiosBuffer mountBuffer;
 	int res = sceFiosArchiveGetMountBufferSizeSync(NULL, psarcPath, NULL);
+	common->Printf("Mount buffer size for %s: %d bytes\n", psarcPath, res);
 	mountBuffer.length = res;
 	mountBuffer.pPtr = malloc(res);
 
@@ -4126,7 +4127,7 @@ pack_t *idFileSystemLocal::LoadPSARCFile(const char *psarcPath) {
 idFile_InPSARC *idFileSystemLocal::ReadFileFromPSARC( pack_t *pak, fileInPack_t *pakFile, const char *relativePath ) {
 	char fullPath[512];
 	idStr::snPrintf( fullPath, sizeof(fullPath), "%s/%s",
-	                 pak->psarcMountPoint.c_str(), relativePath );
+		pak->psarcMountPoint.c_str(), relativePath );
 
 	int fh = 0;
 	int err = sceFiosFHOpenSync( NULL, &fh, fullPath, NULL );

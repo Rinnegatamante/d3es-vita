@@ -49,7 +49,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifdef __vita__
 #include <vitasdk.h>
 #include <vitaGL.h>
-int _newlib_heap_size_user = 256 * 1024 * 1024;
+int _newlib_heap_size_user = 300 * 1024 * 1024;
 
 extern "C"{
 void *__wrap_calloc(uint32_t nmember, uint32_t size) { return vglCalloc(nmember, size); }
