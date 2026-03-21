@@ -1363,3 +1363,95 @@ int idFile_InZip::Seek( long offset, fsOrigin_t origin ) {
 	}
 	return -1;
 }
+
+/*
+=================================================================================
+
+idFile_InPSARC
+
+=================================================================================
+*/
+
+#ifdef __vita__
+
+idFile_InPSARC::idFile_InPSARC() {
+	fileSize = 0;
+	readPos  = 0;
+	fh       = 0;
+}
+
+idFile_InPSARC::~idFile_InPSARC() {
+	if (fh) {
+		sceFiosFHCloseSync(NULL, fh);
+		fh = 0;
+	}
+}
+
+int idFile_InPSARC::Read( void *buffer, int len ) {
+	if ( len <= 0 || readPos >= fileSize ) {
+		return 0;
+	}
+
+	if ( readPos + len > fileSize ) {
+		len = fileSize - readPos;
+	}
+
+	int64_t result = sceFiosFHReadSync(NULL, fh, buffer, len);
+	if ( result < 0 ) {
+		common->Warning( "idFile_InPSARC::Read: error %d reading %s", (int)result, name.c_str() );
+		return 0;
+	}
+
+	readPos += (int)result;
+	fileSystem->AddToReadCount( (int)result );
+	return (int)result;
+}
+
+int idFile_InPSARC::Write( const void *buffer, int len ) {
+	common->FatalError( "idFile_InPSARC::Write: cannot write to PSARC file %s", name.c_str() );
+	return 0;
+}
+
+int idFile_InPSARC::Length() {
+	return fileSize;
+}
+
+ID_TIME_T idFile_InPSARC::Timestamp() {
+	return 0;
+}
+
+int idFile_InPSARC::Tell() {
+	return readPos;
+}
+
+void idFile_InPSARC::ForceFlush() {}
+void idFile_InPSARC::Flush() {}
+
+int idFile_InPSARC::Seek( long offset, fsOrigin_t origin ) {
+	int64_t newPos;
+
+	switch ( origin ) {
+		case FS_SEEK_SET:
+			newPos = offset;
+			break;
+		case FS_SEEK_CUR:
+			newPos = readPos + offset;
+			break;
+		case FS_SEEK_END:
+			newPos = fileSize - offset;
+			break;
+		default:
+			common->FatalError( "idFile_InPSARC::Seek: bad origin for %s\n", name.c_str() );
+			return -1;
+	}
+
+	if ( newPos < 0 || newPos > fileSize ) {
+		return -1;
+	}
+
+	sceFiosFHSeek( fh, newPos, SEEK_SET );
+	readPos = (int)newPos;
+	return 0;
+}
+
+#endif

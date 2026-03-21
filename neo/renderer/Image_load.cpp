@@ -374,7 +374,6 @@ char etc_buffer[256 * 1024];
 
 int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type) {
 	char* tmp;
-	int failed=0;
 	
 	int ret = etcavail( cachefname );
 #ifdef __vita__
@@ -404,12 +403,11 @@ int uploadetc(char* cachefname,GLenum target, GLint level, GLint internalformat,
 #ifndef __vita__
 	fileSystem->FreeFile(tmp);
 #endif
-	return failed;
+	return 0;
 }
 
 void myglTexImage2D(char* _cachefname,GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels) {
 	static int opaque = 0;
-
 	// LOGI("myglTexImage2D, name = %s", cachefname );
 	char cachefname[256] = {};
 	
@@ -418,20 +416,14 @@ void myglTexImage2D(char* _cachefname,GLenum target, GLint level, GLint internal
 		if (level == 0)
 			opaque = isopaque(width, height, pixels);
 
-		if (r_useETC1Cache.GetBool())
-			sprintf(cachefname, "ux0:data/dhewm3/base/%s", _cachefname);
+		sprintf(cachefname, "ux0:data/dhewm3/base/%s", _cachefname);
 
-		if( uploadetc(cachefname, target, level, internalformat, width, height, border, format, type ) != 0 )
-		{
+		if( uploadetc(cachefname, target, level, internalformat, width, height, border, format, type ) != 0 ) {
 			if (opaque)
 				etc1_compress_tex_image(cachefname,target, level, format, width, height, border, format, type, pixels);
 			else
 				rgba4444_convert_tex_image(cachefname,target, level, format, width, height, border, format, type, pixels);
 
-		}
-		else
-		{
-			// LOGI("Loaded cached image from %s", cachefname);
 		}
 	} else {
 #if 0 // Force texture compression

@@ -46,6 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <locale.h>
 
+#ifdef __vita__
 #include <vitasdk.h>
 #include <vitaGL.h>
 int _newlib_heap_size_user = 256 * 1024 * 1024;
@@ -57,6 +58,7 @@ void *__wrap_malloc(uint32_t size) { return vglMalloc(size); };
 void *__wrap_memalign(uint32_t alignment, uint32_t size) { return vglMemalign(alignment, size); };
 void *__wrap_realloc(void *ptr, uint32_t size) { return vglRealloc(ptr, size); };
 };
+#endif
 
 static char path_argv[MAX_OSPATH];
 
@@ -111,7 +113,7 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 #ifdef __ANDROID__
 		s = getenv("USER_FILES");
 		idStr::snPrintf(buf, sizeof(buf), "%s/d3es/config", s);
-#elif defined(VITA)
+#elif defined(__vita__)
 		idStr::snPrintf(buf, sizeof(buf), "%s", "ux0:data/dhewm3");
 #else
 		s = getenv("XDG_CONFIG_HOME");
@@ -127,7 +129,7 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 #ifdef __ANDROID__
 		s = getenv("USER_FILES");
 		idStr::snPrintf(buf, sizeof(buf), "%s/d3es/saves", s);
-#elif defined(VITA)
+#elif defined(__vita__)
 		idStr::snPrintf(buf, sizeof(buf), "%s", "ux0:data/dhewm3");
 #else
 		s = getenv("XDG_DATA_HOME");
@@ -141,7 +143,7 @@ bool Sys_GetPath(sysPath_t type, idStr &path) {
 
 	case PATH_EXE:
 		idStr::snPrintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
-#ifndef VITA
+#ifndef __vita__
 		len = readlink(buf, buf2, sizeof(buf2));
 		if (len != -1) {
 			if (len < MAX_OSPATH) {
@@ -182,7 +184,7 @@ returns in megabytes
 int Sys_GetSystemRam( void ) {
 	long	count, page_size;
 	int		mb;
-#ifndef VITA
+#ifndef __vita__
 	count = sysconf( _SC_PHYS_PAGES );
 	if ( count == -1 ) {
 		common->Printf( "GetSystemRam: sysconf _SC_PHYS_PAGES failed\n" );
@@ -221,7 +223,7 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 		if ( stat( exeName, &buf ) == -1 ) {
 			printf( "stat %s failed: %s\n", exeName, strerror( errno ) );
 		} else {
-#ifndef VITA
+#ifndef __vita__
 			if ( chmod( exeName, buf.st_mode | S_IXUSR ) == -1 ) {
 				printf( "cmod +x %s failed: %s\n", exeName, strerror( errno ) );
 			}
@@ -241,7 +243,7 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 				_exit( 0 );
 			} else {
 				printf( "execl %s\n", exeName );
-#ifndef VITA
+#ifndef __vita__
 				execl( exeName, exeName, NULL );
 #endif
 				printf( "execl failed: %s\n", strerror( errno ) );
@@ -260,7 +262,7 @@ void Sys_DoStartProcess( const char *exeName, bool dofork ) {
 				sleep( 1 );	// on some systems I've seen that starting the new process and exiting this one should not be too close
 		} else {
 			printf( "execl %s\n", exeName );
-#ifndef VITA
+#ifndef __vita__
 			execl( exeName, exeName, NULL );
 #endif
 			printf( "execl failed: %s\n", strerror( errno ) );
@@ -317,7 +319,7 @@ void idSysLocal::OpenURL( const char *url, bool quit ) {
 	sys->StartProcess( cmdline, quit );
 }
 
-#ifdef VITA
+#ifdef __vita__
 #include <vitasdk.h>
 
 ALCdevice *alDevice;
@@ -347,17 +349,29 @@ int doom_main (unsigned int argc, void* argv) {
 main
 ===============
 */
+#ifdef __vita__
+#include "framework/fios_vita.h"
+#define MAX_PATH_LENGTH 256
+static int64_t g_OpStorage[SCE_FIOS_OP_STORAGE_SIZE(64, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static int64_t g_ChunkStorage[SCE_FIOS_CHUNK_STORAGE_SIZE(1024) / sizeof(int64_t) + 1];
+static int64_t g_FHStorage[SCE_FIOS_FH_STORAGE_SIZE(1024, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static int64_t g_DHStorage[SCE_FIOS_DH_STORAGE_SIZE(32, MAX_PATH_LENGTH) / sizeof(int64_t) + 1];
+static SceFiosPsarcDearchiverContext g_PsarcContext;
+#define PSARCCACHEBLOCKSIZE (192 * 1024)
+#endif
+
 #ifdef __ANDROID__
 int main_android(int argc, char **argv, int gameMod_) {
 #else
 int main(int argc, char **argv) {
 #endif
 
+#ifdef __vita__
+	//sceSysmoduleLoadModule(SCE_SYSMODULE_RAZOR_CAPTURE);
 #ifdef NO_LIGHT
 	sceClibPrintf("Launching with no lights\n");
 #endif
 
-#ifdef VITA
 	// Check if we want to start the game without lights
 	sceAppUtilInit(&(SceAppUtilInitParam){}, &(SceAppUtilBootParam){});
 	SceAppUtilAppEventParam eventParam;
@@ -369,6 +383,37 @@ int main(int argc, char **argv) {
 		sceClibPrintf("Launching with %s\n", buffer);
 		if (strstr(buffer, "custom"))
 			sceAppMgrLoadExec("app0:/no_lights.bin", NULL, NULL);
+	}
+	
+	SceFiosParams params = SCE_FIOS_PARAMS_INITIALIZER;
+	params.opStorage.pPtr = g_OpStorage;
+	params.opStorage.length = sizeof(g_OpStorage);
+	params.chunkStorage.pPtr = g_ChunkStorage;
+	params.chunkStorage.length = sizeof(g_ChunkStorage);
+	params.fhStorage.pPtr = g_FHStorage;
+	params.fhStorage.length = sizeof(g_FHStorage);
+	params.dhStorage.pPtr = g_DHStorage;
+	params.dhStorage.length = sizeof(g_DHStorage);
+	params.pathMax = MAX_PATH_LENGTH;
+
+	params.threadAffinity[SCE_FIOS_IO_THREAD] = 0x20000;
+	params.threadAffinity[SCE_FIOS_CALLBACK_THREAD] = 0;
+	params.threadAffinity[SCE_FIOS_DECOMPRESSOR_THREAD] = 0;
+
+	params.threadPriority[SCE_FIOS_IO_THREAD] = 64;
+	params.threadPriority[SCE_FIOS_CALLBACK_THREAD] = 191;
+	params.threadPriority[SCE_FIOS_DECOMPRESSOR_THREAD] = 191;
+
+	if (sceFiosInitialize(&params) < 0) {
+		sceClibPrintf("Failed to init sceFios. PSARC support will be unavailable.\n");
+	} else {
+		sceClibMemset(&g_PsarcContext, 0, sizeof(SceFiosPsarcDearchiverContext));
+		g_PsarcContext.size = sizeof(SceFiosPsarcDearchiverContext);
+		g_PsarcContext.pWorkBuffer = vglMemalign(64, PSARCCACHEBLOCKSIZE);
+		g_PsarcContext.workBufferSize = PSARCCACHEBLOCKSIZE;
+		if (sceFiosIOFilterAdd(0, sceFiosIOFilterPsarcDearchiver, &g_PsarcContext) < 0) {
+			sceClibPrintf("Failed to init PSARC dearchiver. PSARC support will be unavailable.\n");
+		}
 	}
 	
 	// Setting maximum clocks
@@ -383,11 +428,8 @@ int main(int argc, char **argv) {
 	
 	// We need a bigger stack to run Doom 3, so we create a new thread with a proper stack size
 	SceUID main_thread = sceKernelCreateThread("Doom 3", doom_main, 0x40, 0x200000, 0, 0, NULL);
-	if (main_thread >= 0){
-		sceKernelStartThread(main_thread, 0, NULL);
-		sceKernelWaitThreadEnd(main_thread, NULL, NULL);
-	}
-	return 0;
+	sceKernelStartThread(main_thread, 0, NULL);
+	return sceKernelExitDeleteThread(0);
 #endif
 
 #ifdef __ANDROID__
@@ -396,7 +438,7 @@ int main(int argc, char **argv) {
 	// fallback path to the binary for systems without /proc
 	// while not 100% reliable, its good enough
 	if (argc > 0) {
-#ifndef VITA
+#ifndef __vita__
 		if (!realpath(argv[0], path_argv))
 #endif
 			path_argv[0] = 0;

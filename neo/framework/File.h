@@ -34,6 +34,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "framework/Unzip.h"
 
+#ifdef __vita__
+#include "fios_vita.h"
+#endif
+
 /*
 ==============================================================
 
@@ -244,5 +248,33 @@ private:
 	int						fileSize;		// size of the file
 	void *					z;				// unzip info
 };
+
+#ifdef __vita__
+class idFile_InPSARC : public idFile {
+	friend class idFileSystemLocal;
+	friend idFile_InPSARC *ReadFileFromPSARC( struct pack_s *pak, struct fileInPack_s *pakFile, const char *relativePath );
+ 
+public:
+	idFile_InPSARC();
+	virtual ~idFile_InPSARC();
+ 
+	virtual const char *	GetName()     { return name.c_str(); }
+	virtual const char *	GetFullPath() { return fullPath.c_str(); }
+	virtual int				Read( void *buffer, int len );
+	virtual int				Write( const void *buffer, int len );
+	virtual int				Length();
+	virtual ID_TIME_T		Timestamp();
+	virtual int				Tell();
+	virtual void			ForceFlush();
+	virtual void			Flush();
+	virtual int				Seek( long offset, fsOrigin_t origin );
+ 
+	idStr					name;
+	idStr					fullPath;
+	int						fileSize;
+	int						readPos;
+	int						fh;
+};
+#endif
 
 #endif /* !__FILE_H__ */

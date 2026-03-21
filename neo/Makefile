@@ -3,7 +3,7 @@ TITLE		:= DHEWM3ES2
 
 LIBS = -lopenal -lpthread -lvitaGL -lvitashark -lmathneon -lvorbisfile -lvorbis -logg  -lspeexdsp -lmpg123 \
 	-lSDL2 -lc -lSceCommonDialog_stub -lSceAudio_stub -lSceLibKernel_stub -lSceShaccCg_stub -lz \
-	-lSceShaccCgExt -ltaihen_stub -lpng -lSceDisplay_stub -lSceGxm_stub \
+	-lSceShaccCgExt -ltaihen_stub -lpng -lSceDisplay_stub -lSceGxm_stub -lSceFios2_stub \
 	-lSceCtrl_stub -lSceTouch_stub -lSceMotion_stub -lm -lSceAppMgr_stub \
 	-lSceAppUtil_stub -lScePgf_stub -ljpeg -lSceRtc_stub -lScePower_stub -lcurl -lssl -lcrypto \
 	-lSceAudioIn_stub -lSceKernelDmacMgr_stub -lSceIme_stub -lSceHid_stub \

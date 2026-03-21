@@ -286,6 +286,13 @@ typedef struct {
 	addonInfo_t			*addon_info;
 	pureStatus_t		pureStatus;
 	bool				isNew;						// for downloaded paks
+#ifdef VITA
+    bool				isPSARC;
+    int					psarcHandle;
+    void				*psarcMountBuf;
+    idStr				psarcMountPoint;
+    int					*psarcFileSizes;
+#endif
 	fileInPack_t		*hashTable[FILE_HASH_SIZE];
 	fileInPack_t		*buildBuffer;
 } pack_t;
@@ -383,6 +390,12 @@ public:
 	virtual const idDict *	GetMapDecl( int i );
 	virtual void			FindMapScreenshot( const char *path, char *buf, int len );
 	virtual bool			FilenameCompare( const char *s1, const char *s2 ) const;
+	
+#ifdef __vita__
+    pack_t *           		LoadPSARCFile( const char *psarcPath );
+    idFile_InPSARC *   		ReadFileFromPSARC( pack_t *pak, fileInPack_t *pakFile, const char *relativePath );
+    void               		FreePSARCPack( pack_t *pak );
+#endif
 
 	static void				Dir_f( const idCmdArgs &args );
 	static void				DirTree_f( const idCmdArgs &args );
@@ -2146,6 +2159,30 @@ void idFileSystemLocal::AddGameDirectory( const char *path, const char *dir ) {
 		searchPaths->next = search;
 		common->Printf( "Loaded pk4 %s with checksum 0x%x\n", pakfile.c_str(), pak->checksum );
 	}
+	
+#ifdef __vita__
+	idStrList psarcfiles;
+	idStr psarcfile;
+	psarcfile = BuildOSPath( path, dir, "" );
+	psarcfile[ psarcfile.Length() - 1 ] = 0;
+
+	ListOSFiles( psarcfile, ".psarc", psarcfiles );
+	psarcfiles.Sort();
+
+	for ( i = 0; i < psarcfiles.Num(); i++ ) {
+		psarcfile = BuildOSPath( path, dir, psarcfiles[i] );
+		pak = LoadPSARCFile( psarcfile );
+		if ( !pak ) {
+			continue;
+		}
+		search = new searchpath_t;
+		search->dir = NULL;
+		search->pack = pak;
+		search->next = searchPaths->next;
+		searchPaths->next = search;
+		common->Printf( "Loaded psarc %s with checksum 0x%x\n", psarcfile.c_str(), pak->checksum );
+	}
+#endif
 }
 
 /*
@@ -2775,6 +2812,11 @@ void idFileSystemLocal::Shutdown( bool reloading ) {
 			next = sp->next;
 
 			if ( sp->pack ) {
+#ifdef __vita__
+				if ( sp->pack->isPSARC ) {
+					FreePSARCPack( sp->pack );
+				} else
+#endif
 				unzClose( sp->pack->handle );
 				delete [] sp->pack->buildBuffer;
 				if ( sp->pack->addon_info ) {
@@ -3143,6 +3185,14 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 			for ( pakFile = pak->hashTable[hash]; pakFile; pakFile = pakFile->next ) {
 				// case and separator insensitive comparisons
 				if ( !FilenameCompare( pakFile->name, relativePath ) ) {
+#ifdef __vita__
+					if ( pak->isPSARC ) {
+						idFile_InPSARC *psarcFile = ReadFileFromPSARC( pak, pakFile, relativePath );
+						if ( psarcFile )
+							return psarcFile;
+						continue;
+					}
+#endif
 					idFile_InZip *file = ReadFileFromZip( pak, pakFile, relativePath );
 
 					if ( foundInPak ) {
@@ -3956,3 +4006,160 @@ void idFileSystemLocal::FindMapScreenshot( const char *path, char *buf, int len 
 		}
 	}
 }
+
+#ifdef __vita__
+static SceFiosBuffer psarc_buf;
+
+pack_t *idFileSystemLocal::LoadPSARCFile(const char *psarcPath) {
+	idStr basename = psarcPath;
+	basename = basename.Right(basename.Length() - basename.Last('/') - 1);
+
+	int dotPos = basename.Last('.');
+	if (dotPos >= 0) {
+		basename = basename.Left( dotPos );
+	}
+
+	char mountPoint[128];
+	idStr::snPrintf(mountPoint, sizeof(mountPoint), "/%s", basename.c_str());
+
+	SceFiosBuffer mountBuffer;
+	int res = sceFiosArchiveGetMountBufferSizeSync(NULL, psarcPath, NULL);
+	mountBuffer.length = res;
+	mountBuffer.pPtr = malloc(res);
+
+	int mountHandle = 0;
+	int err = sceFiosArchiveMountSync(NULL, &mountHandle, psarcPath, mountPoint, mountBuffer, NULL);
+	if ( err < 0 ) {
+		common->Warning("LoadPSARCFile: sceFiosArchiveMountSync failed for %s, err=0x%08x", psarcPath, err);
+		free(mountBuffer.pPtr);
+		return NULL;
+	}
+
+	idList<idStr> filePaths;
+	idList<int>   fileSizes;
+
+	idList<idStr> dirStack;
+	dirStack.Append( idStr(mountPoint) );
+
+	while (dirStack.Num() > 0) {
+		idStr currentDir = dirStack[ dirStack.Num() - 1 ];
+		dirStack.RemoveIndex( dirStack.Num() - 1 );
+
+		int dh = 0;
+		err = sceFiosDHOpenSync(NULL, &dh, currentDir.c_str(), psarc_buf);
+		if (err < 0) {
+			continue;
+		}
+
+		SceFiosDirEntry entry;
+		while (sceFiosDHReadSync(NULL, dh, &entry) >= 0) {
+			if (entry.nameLength == 0)
+				break;
+			if (entry.fullPath[entry.offsetToName] == '.')
+				continue;
+
+			if (entry.statFlags & SCE_FIOS_STAT_DIRECTORY) {
+				dirStack.Append(entry.fullPath);
+			} else {
+				idStr relativePath = entry.fullPath;
+				relativePath = relativePath.Right( relativePath.Length() - idStr::Length(mountPoint) - 1 );
+
+				filePaths.Append(relativePath);
+				fileSizes.Append((int)entry.fileSize);
+			}
+		}
+
+		sceFiosDHCloseSync( NULL, dh );
+	}
+
+	int numFiles = filePaths.Num();
+	if (numFiles == 0) {
+		common->Warning("LoadPSARCFile: no files found in %s", psarcPath);
+		sceFiosArchiveUnmountSync(NULL, mountHandle);
+		free(mountBuffer.pPtr);
+		return NULL;
+	}
+
+	fileInPack_t *buildBuffer = new fileInPack_t[numFiles];
+	pack_t *pack = new pack_t;
+	for ( int i = 0; i < FILE_HASH_SIZE; i++ ) {
+		pack->hashTable[i] = NULL;
+	}
+
+	pack->pakFilename    = psarcPath;
+	pack->handle         = NULL;
+	pack->checksum       = 0;
+	pack->numfiles       = numFiles;
+	pack->length         = 0;
+	pack->referenced     = false;
+	pack->addon          = false;
+	pack->addon_search   = false;
+	pack->addon_info     = NULL;
+	pack->pureStatus     = PURE_UNKNOWN;
+	pack->isNew          = false;
+	pack->isPSARC        = true;
+	pack->psarcHandle    = mountHandle;
+	pack->psarcMountBuf  = mountBuffer.pPtr;
+	pack->psarcMountPoint = mountPoint;
+	pack->buildBuffer    = buildBuffer;
+
+	for ( int i = 0; i < numFiles; i++ ) {
+		buildBuffer[i].name = filePaths[i];
+		buildBuffer[i].pos  = (ZPOS64_T)i;
+
+		int hash = HashFileName( filePaths[i] );
+		buildBuffer[i].next  = pack->hashTable[hash];
+		pack->hashTable[hash] = &buildBuffer[i];
+
+		pack->checksum ^= fileSizes[i];
+	}
+
+	pack->psarcFileSizes = new int[numFiles];
+	for ( int i = 0; i < numFiles; i++ ) {
+		pack->psarcFileSizes[i] = fileSizes[i];
+	}
+
+	common->Printf( "Loaded PSARC: %s (%d files, mount: %s)\n", psarcPath, numFiles, mountPoint );
+	return pack;
+}
+
+idFile_InPSARC *idFileSystemLocal::ReadFileFromPSARC( pack_t *pak, fileInPack_t *pakFile, const char *relativePath ) {
+	char fullPath[512];
+	idStr::snPrintf( fullPath, sizeof(fullPath), "%s/%s",
+	                 pak->psarcMountPoint.c_str(), relativePath );
+
+	int fh = 0;
+	int err = sceFiosFHOpenSync( NULL, &fh, fullPath, NULL );
+	if ( err < 0 || !fh ) {
+		common->Warning( "ReadFileFromPSARC: failed to open %s, err=0x%08x", fullPath, err );
+		return NULL;
+	}
+
+	int idx = (int)pakFile->pos;
+	int fileSize = pak->psarcFileSizes[idx];
+
+	idFile_InPSARC *file = new idFile_InPSARC();
+	file->name     = relativePath;
+	file->fullPath = pak->pakFilename + "/" + relativePath;
+	file->fileSize = fileSize;
+	file->readPos  = 0;
+	file->fh       = fh;
+
+	return file;
+}
+
+void idFileSystemLocal::FreePSARCPack( pack_t *pak ) {
+	if ( pak->psarcHandle ) {
+		sceFiosArchiveUnmountSync( NULL, pak->psarcHandle );
+		pak->psarcHandle = 0;
+	}
+	if ( pak->psarcMountBuf ) {
+		free( pak->psarcMountBuf );
+		pak->psarcMountBuf = NULL;
+	}
+	if ( pak->psarcFileSizes ) {
+		delete[] pak->psarcFileSizes;
+		pak->psarcFileSizes = NULL;
+	}
+}
+#endif

@@ -40,7 +40,9 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 #include <signal.h>
 #include <fcntl.h>
+#ifdef __vita__
 #include <vitasdk.h>
+#endif
 
 #include "sys/platform.h"
 #include "idlib/containers/StrList.h"
@@ -52,6 +54,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/posix/posix_public.h"
 
+#ifdef __vita__
 extern "C" int __real_access(const char *fname, int mode);
 extern "C" FILE *__real_fopen(char *fname, char *mode);
 extern "C" int __real_open(const char *fname, int mode);
@@ -89,6 +92,7 @@ extern "C" int __wrap_open(const char *fname, int mode) {
 extern "C" DIR *__wrap_opendir(const char *fname) {
 	return __real_opendir(patch_fname(fname));
 }
+#endif
 
 #ifdef __ANDROID__
 #include "LogWritter.h"
@@ -127,7 +131,7 @@ Posix_Exit
 ================
 */
 void Posix_Exit(int ret) {
-#ifndef VITA
+#ifndef __vita__
 	if ( tty_enabled ) {
 		Sys_Printf( "shutdown terminal support\n" );
 		if ( tcsetattr( 0, TCSADRAIN, &tty_tc ) == -1 ) {
@@ -307,7 +311,7 @@ TODO: OSX - use the native API instead? NSModule
 =================
 */
 uintptr_t Sys_DLL_Load( const char *path ) {
-#ifndef VITA
+#ifndef __vita__
 #ifdef __ANDROID__
 	Sys_Printf( "Sys_DLL_Load %s\n", path );
 #endif
@@ -324,7 +328,7 @@ Sys_DLL_GetProcAddress
 =================
 */
 void* Sys_DLL_GetProcAddress( uintptr_t handle, const char *sym ) {
-#ifndef VITA
+#ifndef __vita__
 	const char *error;
 	void *ret = dlsym( (void *)handle, sym );
 	if ((error = dlerror()) != NULL)  {
@@ -342,7 +346,7 @@ Sys_DLL_Unload
 =================
 */
 void Sys_DLL_Unload( uintptr_t handle ) {
-#ifndef VITA
+#ifndef __vita__
 	dlclose( (void *)handle );
 #endif
 }
@@ -489,7 +493,7 @@ static void signalhandlerConsoleStuff(int sig)
 
 static void installSigHandler(int sig, int flags, void (*handler)(int))
 {
-#ifndef VITA
+#ifndef __vita__
 	struct sigaction sigact = {0};
 	sigact.sa_handler = handler;
 	sigemptyset(&sigact.sa_mask);
@@ -500,7 +504,7 @@ static void installSigHandler(int sig, int flags, void (*handler)(int))
 
 void Posix_InitSignalHandlers( void )
 {
-#ifndef VITA
+#ifndef __vita__
 	for(int i=0; i<sizeof(crashSigs)/sizeof(crashSigs[0]); ++i)
 	{
 		installSigHandler(crashSigs[i], SA_RESTART|SA_RESETHAND, signalhandlerCrash);
@@ -519,7 +523,7 @@ Posix_InitConsoleInput
 ===============
 */
 void Posix_InitConsoleInput( void ) {
-#ifndef VITA
+#ifndef __vita__
 	struct termios tc;
 
 	common->StartupVariable( "in_tty", false );
@@ -616,7 +620,7 @@ void tty_Right() {
 // clear the display of the line currently edited
 // bring cursor back to beginning of line
 void tty_Hide() {
-#ifndef VITA
+#ifndef __vita__
 	int len, buf_len;
 	if ( !tty_enabled ) {
 		return;
@@ -642,7 +646,7 @@ void tty_Hide() {
 
 // show the current line
 void tty_Show() {
-#ifndef VITA
+#ifndef __vita__
 	//	int i;
 	if ( !tty_enabled ) {
 		return;
@@ -669,7 +673,7 @@ void tty_Show() {
 }
 
 void tty_FlushIn() {
-#ifndef VITA
+#ifndef __vita__
   int key;
   while ( ( key = getchar() ) != EOF ) {
 	  Sys_Printf( "'%d' ", key );
@@ -686,7 +690,7 @@ Return NULL if a complete line is not ready.
 ================
 */
 char *Sys_ConsoleInput( void ) {
-#ifndef VITA
+#ifndef __vita__
 	if ( tty_enabled ) {
 		int	key;
 		bool	hidden = false;
