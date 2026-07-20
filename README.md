@@ -1,6 +1,6 @@
 # LDhewm3 ReARMed
 <img src="shot.png"></img><br>
-LDhewm3 ReARMed is a lowend fork of [dhewwm3](https://dhewm3.org/) focusing primarily on tradeoff to ensure a decent enough graphical fidelity whilst being able to run on lowend devices.
+LDhewm3 ReARMed is a lowend fork of [dhewm3](https://dhewm3.org/) focusing primarily on tradeoff to ensure a decent enough graphical fidelity whilst being able to run on lowend devices.
 Current focus is on a PSVita dedicated build.
 
 ## vitaGL flags
