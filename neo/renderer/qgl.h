@@ -35,6 +35,13 @@ If you have questions concerning this license or the applicable additional terms
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
+#ifndef GL_CG_VERTEX_SHADER_EXT
+#define GL_CG_VERTEX_SHADER_EXT 0x890E
+#endif
+#ifndef GL_CG_FRAGMENT_SHADER_EXT
+#define GL_CG_FRAGMENT_SHADER_EXT 0x890F
+#endif
+
 typedef void (*GLExtension_t)(void);
 
 #ifdef __cplusplus

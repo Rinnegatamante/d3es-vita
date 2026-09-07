@@ -136,13 +136,13 @@ static void R_LoadGLSLShader(const char* buffer, shaderProgram_t* shaderProgram,
 	switch ( type ) {
 	case GL_VERTEX_SHADER:
 		// create vertex shader
-		shaderProgram->vertexShader = qglCreateShader(GL_VERTEX_SHADER);
+		shaderProgram->vertexShader = qglCreateShader(GL_CG_VERTEX_SHADER_EXT);
 		qglShaderSource(shaderProgram->vertexShader, 1, (const GLchar**) &buffer, 0);
 		qglCompileShader(shaderProgram->vertexShader);
 		break;
 	case GL_FRAGMENT_SHADER:
 		// create fragment shader
-		shaderProgram->fragmentShader = qglCreateShader(GL_FRAGMENT_SHADER);
+		shaderProgram->fragmentShader = qglCreateShader(GL_CG_FRAGMENT_SHADER_EXT);
 		qglShaderSource(shaderProgram->fragmentShader, 1, (const GLchar**) &buffer, 0);
 		qglCompileShader(shaderProgram->fragmentShader);
 		break;
@@ -313,7 +313,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(interactionShaderVP, &interactionShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(interactionShaderFP, &interactionShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&interactionShader, "interaction") && !R_ValidateGLSLProgram(&interactionShader)) {
+	if ( !R_LinkGLSLShader(&interactionShader, "interaction") || !R_ValidateGLSLProgram(&interactionShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&interactionShader);
@@ -326,7 +326,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(interactionPhongShaderVP, &interactionPhongShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(interactionPhongShaderFP, &interactionPhongShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&interactionPhongShader, "interactionPhong") &&
+	if ( !R_LinkGLSLShader(&interactionPhongShader, "interactionPhong") ||
 	        !R_ValidateGLSLProgram(&interactionPhongShader)) {
 		return false;
 	} else {
@@ -340,7 +340,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(diffuseMapShaderVP, &diffuseMapShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(diffuseMapShaderFP, &diffuseMapShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&diffuseMapShader, "diffuseMap") && !R_ValidateGLSLProgram(&diffuseMapShader)) {
+	if ( !R_LinkGLSLShader(&diffuseMapShader, "diffuseMap") || !R_ValidateGLSLProgram(&diffuseMapShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&diffuseMapShader);
@@ -353,7 +353,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(skyboxCubeShaderVP, &skyboxCubeShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(cubeMapShaderFP, &skyboxCubeShader, GL_FRAGMENT_SHADER);   // Use the common "cubeMapShaderFP"
 
-	if ( !R_LinkGLSLShader(&skyboxCubeShader, "skyboxCube") && !R_ValidateGLSLProgram(&skyboxCubeShader)) {
+	if ( !R_LinkGLSLShader(&skyboxCubeShader, "skyboxCube") || !R_ValidateGLSLProgram(&skyboxCubeShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&skyboxCubeShader);
@@ -366,7 +366,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(reflectionCubeShaderVP, &reflectionCubeShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(cubeMapShaderFP, &reflectionCubeShader, GL_FRAGMENT_SHADER); // Use the common "cubeMapShaderFP"
 
-	if ( !R_LinkGLSLShader(&reflectionCubeShader, "reflectionCube") &&
+	if ( !R_LinkGLSLShader(&reflectionCubeShader, "reflectionCube") ||
 	        !R_ValidateGLSLProgram(&reflectionCubeShader)) {
 		return false;
 	} else {
@@ -380,7 +380,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(diffuseCubeShaderVP, &diffuseCubeShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(cubeMapShaderFP, &diffuseCubeShader, GL_FRAGMENT_SHADER); // Use the common "cubeMapShaderFP"
 
-	if ( !R_LinkGLSLShader(&diffuseCubeShader, "diffuseCube") && !R_ValidateGLSLProgram(&diffuseCubeShader)) {
+	if ( !R_LinkGLSLShader(&diffuseCubeShader, "diffuseCube") || !R_ValidateGLSLProgram(&diffuseCubeShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&diffuseCubeShader);
@@ -393,7 +393,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(zfillShaderVP, &zfillShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(zfillShaderFP, &zfillShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&zfillShader, "zfill") && !R_ValidateGLSLProgram(&zfillShader)) {
+	if ( !R_LinkGLSLShader(&zfillShader, "zfill") || !R_ValidateGLSLProgram(&zfillShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&zfillShader);
@@ -406,7 +406,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(zfillClipShaderVP, &zfillClipShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(zfillClipShaderFP, &zfillClipShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&zfillClipShader, "zfillClip") && !R_ValidateGLSLProgram(&zfillClipShader)) {
+	if ( !R_LinkGLSLShader(&zfillClipShader, "zfillClip") || !R_ValidateGLSLProgram(&zfillClipShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&zfillClipShader);
@@ -419,7 +419,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(fogShaderVP, &fogShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(fogShaderFP, &fogShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&fogShader, "fog") && !R_ValidateGLSLProgram(&fogShader)) {
+	if ( !R_LinkGLSLShader(&fogShader, "fog") || !R_ValidateGLSLProgram(&fogShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&fogShader);
@@ -432,7 +432,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(blendLightShaderVP, &blendLightShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(fogShaderFP, &blendLightShader, GL_FRAGMENT_SHADER);       // Reuse the common "FogShaderFP"
 
-	if ( !R_LinkGLSLShader(&blendLightShader, "blendLight") && !R_ValidateGLSLProgram(&blendLightShader)) {
+	if ( !R_LinkGLSLShader(&blendLightShader, "blendLight") || !R_ValidateGLSLProgram(&blendLightShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&blendLightShader);
@@ -445,7 +445,7 @@ static bool RB_GLSL_InitShaders(void) {
 	R_LoadGLSLShader(stencilShadowShaderVP, &stencilShadowShader, GL_VERTEX_SHADER);
 	R_LoadGLSLShader(stencilShadowShaderFP, &stencilShadowShader, GL_FRAGMENT_SHADER);
 
-	if ( !R_LinkGLSLShader(&stencilShadowShader, "stencilShadow") && !R_ValidateGLSLProgram(&stencilShadowShader)) {
+	if ( !R_LinkGLSLShader(&stencilShadowShader, "stencilShadow") || !R_ValidateGLSLProgram(&stencilShadowShader)) {
 		return false;
 	} else {
 		RB_GLSL_GetUniformLocations(&stencilShadowShader);
